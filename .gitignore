@@ -1,0 +1,8 @@
+# macOS
+.DS_Store
+
+# iCloud-plassholdere for filer som ikke er lastet ned
+*.icloud
+
+# Lokale innstillinger for Claude Code (inneholder maskinspesifikke stier)
+.claude/

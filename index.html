@@ -1,0 +1,3308 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fortellerverksted</title>
+<meta name="description" content="Finn byggeklossene til historien din – med lykkehjul, spillkort eller et eventyrkart basert på Heltens reise.">
+<meta name="author" content="Theodor Sandaker">
+<meta name="theme-color" content="#1a1a2e">
+<link rel="canonical" href="https://theodorjs.github.io/forteller/">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="nb_NO">
+<meta property="og:title" content="Fortellerverksted">
+<meta property="og:description" content="Finn byggeklossene til historien din – med lykkehjul, spillkort eller et eventyrkart basert på Heltens reise.">
+<meta property="og:url" content="https://theodorjs.github.io/forteller/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231a1a2e'/%3E%3Cpath d='M32 20c-5-3.5-11-4.5-18-4v30c7-.5 13 .5 18 4 5-3.5 11-4.5 18-4V16c-7-.5-13 .5-18 4z' fill='%23f7f0e1'/%3E%3Cpath d='M32 20v30' stroke='%23c9b78c' stroke-width='2'/%3E%3Cpath d='M18 24c4-.3 7.5.3 10 1.6M18 30c4-.3 7.5.3 10 1.6M36 25.6c2.5-1.3 6-1.9 10-1.6M36 31.6c2.5-1.3 6-1.9 10-1.6' stroke='%23e94560' stroke-width='2' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #1a1a2e;
+    --surface: #16213e;
+    --card: #0f3460;
+    --machine: #090e1a;
+    --panel: #0d1b36;
+    --toast: #1e3a5f;
+    --accent: #e94560;
+    --accent-2: #c0392b;
+    --gold: #f5a623;
+    --gold-2: #e67e22;
+    --text: #eaeaea;
+    --muted: #8892a4;
+    --on-accent: #ffffff;
+    --on-gold: #1a1a2e;
+    --line: rgba(255,255,255,0.09);
+    --bump: rgba(255,255,255,0.06);
+    --bump-2: rgba(255,255,255,0.11);
+    --shadow: rgba(0,0,0,0.5);
+    --slot-h: 65px;
+    --slot-visible: 3;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 30px 20px 26px;
+    transition: background-color 0.25s, color 0.25s;
+  }
+
+  h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+    background: linear-gradient(135deg, var(--gold), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 1.1rem;
+    margin-bottom: 40px;
+  }
+
+  .board-label {
+    font-size: 1rem;
+    color: var(--muted);
+    font-weight: 700;
+    margin-bottom: 5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  #board-name-display {
+    font-size: 1.25rem;
+    color: var(--gold);
+    font-weight: 600;
+    margin-bottom: 35px;
+  }
+
+  /* GRID */
+  .slots-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 25px;
+    width: 100%;
+    max-width: 1375px;
+  }
+
+  /* SLOT COLUMN */
+  .slot-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+  }
+
+  .slot-label {
+    font-size: 0.94rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 700;
+  }
+
+  /* SLOT MACHINE */
+  .slot-machine {
+    width: 100%;
+    position: relative;
+    background: var(--machine);
+    border-radius: 18px;
+    border: 2px solid var(--line);
+    box-shadow:
+      0 10px 40px var(--shadow),
+      inset 0 1px 0 color-mix(in srgb, var(--text) 9%, transparent);
+    overflow: hidden;
+    height: calc(var(--slot-h) * var(--slot-visible));
+  }
+
+  /* perspective fade top/bottom */
+  .slot-machine::before,
+  .slot-machine::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0;
+    height: 40%;
+    z-index: 3;
+    pointer-events: none;
+  }
+  .slot-machine::before {
+    top: 0;
+    background: linear-gradient(to bottom, color-mix(in srgb, var(--machine) 93%, transparent) 0%, transparent 100%);
+  }
+  .slot-machine::after {
+    bottom: 0;
+    background: linear-gradient(to top, color-mix(in srgb, var(--machine) 93%, transparent) 0%, transparent 100%);
+  }
+
+  /* CENTER MARKER */
+  .slot-marker {
+    position: absolute;
+    top: 50%;
+    left: 0; right: 0;
+    transform: translateY(-50%);
+    height: var(--slot-h);
+    z-index: 4;
+    pointer-events: none;
+    border-top: 2px solid var(--accent);
+    border-bottom: 2px solid var(--accent);
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+  }
+  .slot-marker::before,
+  .slot-marker::after {
+    content: '▶';
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--accent);
+    font-size: 17px;
+    line-height: 1;
+  }
+  .slot-marker::before { left: 10px; }
+  .slot-marker::after { right: 10px; transform: translateY(-50%) scaleX(-1); }
+
+  /* REEL */
+  .reel {
+    display: flex;
+    flex-direction: column;
+    will-change: transform;
+    transition: transform 0s;
+  }
+
+  .reel-item {
+    height: var(--slot-h);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0 22px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--muted);
+    line-height: 1.3;
+    flex-shrink: 0;
+  }
+
+  .reel-item.center {
+    color: var(--text);
+    font-weight: 700;
+  }
+
+  /* SPIN BUTTON */
+  .spin-btn {
+    width: 100%;
+    padding: 13px 0;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: var(--on-accent);
+    font-size: 1.06rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    text-transform: uppercase;
+    box-shadow: 0 5px 18px color-mix(in srgb, var(--accent) 40%, transparent);
+    transition: opacity 0.2s, transform 0.1s, box-shadow 0.2s;
+    position: relative;
+  }
+  .spin-btn:hover:not(:disabled) {
+    opacity: 0.9;
+    box-shadow: 0 8px 25px color-mix(in srgb, var(--accent) 55%, transparent);
+  }
+  .spin-btn:active:not(:disabled) { transform: scale(0.97); }
+  .spin-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+  .spin-btn.spinning {
+    background: linear-gradient(135deg, #555, #333);
+    box-shadow: none;
+  }
+
+  /* ===== VIEW: «kort» (card decks on a felt table) ===== */
+  body[data-view="kort"] { background: #1f4a3c; }   /* green felt — the view's own furniture */
+
+  .kort-table {
+    width: 100%;
+    max-width: 1280px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+  }
+
+  /* Decks: face-down stacks, one colour + suit per category */
+  .deck-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 26px;
+  }
+  .deck { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .deck-stack {
+    --deck: #5b51c9;
+    width: 130px;
+    aspect-ratio: 3 / 4;
+    border: none;
+    padding: 0;
+    background: transparent;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.18s ease;
+  }
+  .deck-stack:hover { transform: translateY(-5px); }
+  .deck-stack:active { transform: translateY(-2px) scale(0.98); }
+  .deck-stack:disabled { cursor: default; }
+  .deck-card {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: 12px;
+    background: #f4ecd8;
+    padding: 6px;
+    box-shadow:
+      3px 4px 0 -1px #e7ddc2,
+      6px 8px 0 -2px #ddd2b4,
+      7px 11px 15px rgba(0,0,0,0.32);
+  }
+  .deck-back {
+    width: 100%;
+    height: 100%;
+    border-radius: 7px;
+    overflow: hidden;
+  }
+  @keyframes deck-deal { 0% { transform: translateY(0) rotate(0); } 40% { transform: translateY(-16px) rotate(-3deg); } 100% { transform: translateY(0) rotate(0); } }
+  .deck-stack.dealing .deck-card { animation: deck-deal 0.42s ease; }
+  .deck-label { font-size: 0.94rem; letter-spacing: 0.05em; color: #e9e1c9; font-weight: 700; }
+
+  /* The hand: drawn cards fanned out */
+  .hand-zone {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-height: 230px;
+  }
+  .hand-label { font-size: 0.9rem; letter-spacing: 0.14em; text-transform: uppercase; color: #b6c8bc; font-weight: 700; }
+  .hand-empty { color: #82a08c; font-size: 0.96rem; margin-top: 46px; }
+  /* True fan geometry: every card is rotated about one shared pivot far below
+     the hand, so all bottom edges sit on the same circular arc. */
+  .hand { position: relative; width: 100%; }
+  .hand-card {
+    width: 164px;
+    aspect-ratio: 5 / 7;
+    position: absolute;
+    left: 50%;
+    top: 14px;
+    margin-left: -82px;
+    z-index: var(--z, 0);
+  }
+  .hand-card:hover { z-index: 99; }
+  .hc-inner {
+    position: absolute;
+    inset: 0;
+    border-radius: 11px;
+    background: #f7f0e1;
+    box-shadow: 0 7px 18px rgba(0,0,0,0.34);
+    border: 1px solid rgba(0,0,0,0.1);
+    padding: 26px 12px 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    text-align: center;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+  }
+  /* inner frame in the deck's colour, like a classic court card */
+  .hc-inner::before {
+    content: '';
+    position: absolute;
+    inset: 7px;
+    border: 1.5px solid color-mix(in srgb, var(--deck) 38%, transparent);
+    border-radius: 7px;
+    pointer-events: none;
+  }
+  /* raise the hovered/tapped card clear of its neighbours so the text reads
+     (touch screens apply :hover on tap, so this covers iPads too) */
+  .hand-card:hover .hc-inner {
+    transform: translateY(-36px) scale(1.09);
+    box-shadow: 0 18px 34px rgba(0,0,0,0.42);
+  }
+  .hc-corner { position: absolute; line-height: 0; }
+  .hc-corner.tl { top: 10px; left: 10px; }
+  .hc-corner.br { bottom: 10px; right: 10px; transform: rotate(180deg); }
+  .hc-art { line-height: 0; margin-top: 6px; }
+  .hc-cat {
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--deck);
+    line-height: 1.15;
+    max-width: 100%;
+  }
+  .hc-value { font-size: 1.06rem; font-weight: 700; color: #2a2a30; line-height: 1.24; }
+  @keyframes deal-in { from { opacity: 0; transform: translateY(-90px) scale(0.7); } }
+  .hc-inner.dealt { animation: deal-in 0.4s cubic-bezier(0.2,0.7,0.3,1) both; }
+  .hand-reset {
+    margin-top: 16px;
+    background: none;
+    border: 1px solid rgba(255,255,255,0.3);
+    color: #cfe1d4;
+    padding: 7px 18px;
+    border-radius: 999px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .hand-reset:hover { background: rgba(255,255,255,0.08); }
+
+  /* ===== VIEW: «kart» (Heltens reise as a route on a watercolour map) ===== */
+  /* The map is the view's own furniture: parchment, sepia and washes are fixed
+     colours, independent of the live palette (same rule as the kort felt). */
+  body[data-view="kart"] { background: #e7dbb7; }
+  body[data-view="kart"] h1 {
+    background: linear-gradient(135deg, #96611c, #a53a20);
+    -webkit-background-clip: text;
+  }
+  body[data-view="kart"] .subtitle { color: #85704a; }
+  body[data-view="kart"] .board-label { color: #97815b; }
+  body[data-view="kart"] #board-name-display { color: #8c5a18; }
+
+  .kart-wrap {
+    width: 100%;
+    max-width: 1180px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+  .kart-scroll { width: 100%; overflow-x: auto; border-radius: 10px; }
+  .kart-sheet {
+    min-width: 760px;
+    border: 2.5px solid #8a6b3c;
+    border-radius: 8px;
+    background: #f2e9ce;
+    box-shadow:
+      inset 0 0 0 5px #f2e9ce,
+      inset 0 0 0 6.5px #b99a63,
+      inset 0 0 70px rgba(146,109,44,0.18),
+      0 16px 44px rgba(96,66,20,0.28);
+  }
+  .kart-sheet svg { display: block; width: 100%; height: auto; }
+
+  /* Route: faint dotted trail + a solid ink line revealed as the journey progresses */
+  .route-base {
+    fill: none;
+    stroke: #8b4a2f;
+    stroke-width: 3.5;
+    stroke-linecap: round;
+    stroke-dasharray: 0.5 12;
+    opacity: 0.4;
+  }
+  .route-ink {
+    fill: none;
+    stroke: #7c3a20;
+    stroke-width: 2.75;
+    stroke-linecap: round;
+    opacity: 0.85;
+    transition: stroke-dashoffset 0.9s ease;
+  }
+
+  /* Stops: pop-up landmarks standing upright on the book's map. Each is the
+     category's icon on a small plaque with a foot, a ground shadow and a
+     number badge — visited plaques turn wax-red. */
+  .map-stop { cursor: pointer; outline: none; }
+  svg.busy .map-stop { cursor: default; }
+  .stop-shadow { fill: rgba(90,60,20,0.16); }
+  .stop-core { transform-box: fill-box; transform-origin: 50% 100%; transition: transform 0.15s; }
+  .map-stop:hover .stop-core { transform: scale(1.07); }
+  .map-stop:focus-visible .stop-plaque { stroke: #b5482a; stroke-width: 3.4; }
+  .stop-plaque { fill: #f8f1dc; stroke: #7a5230; stroke-width: 2.2; }
+  .stop-foot { fill: #e0d0a4; stroke: #7a5230; stroke-width: 1.6; }
+  .stop-icon { color: #7a5230; }
+  .map-stop.visited .stop-plaque { fill: #b5482a; stroke: #7c2d18; }
+  .map-stop.visited .stop-icon { color: #fdf3e0; }
+  .stop-num-c { fill: #f8f1dc; stroke: #7a5230; stroke-width: 2; }
+  .stop-num { fill: #6b5124; font: 700 12.5px Georgia, 'Times New Roman', serif; }
+  .map-stop.visited .stop-num-c { fill: #7c2d18; stroke: #5e2010; }
+  .map-stop.visited .stop-num { fill: #fdf3e0; }
+  @keyframes stop-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+  .map-stop.next .stop-core { animation: stop-pulse 1.7s ease-in-out infinite; }
+  .stop-ring {
+    fill: none;
+    stroke: #b5482a;
+    stroke-width: 2.5;
+    stroke-dasharray: 7 9;
+    opacity: 0;
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  @keyframes ring-spin { to { transform: rotate(360deg); } }
+  .map-stop.drawing .stop-ring { opacity: 1; animation: ring-spin 1s linear infinite; }
+  .stop-name { fill: #6b5124; font: 700 13px Georgia, 'Times New Roman', serif; letter-spacing: 0.04em; }
+
+  /* Result tags: parchment notes hanging in the air above each landmark,
+     drifting gently like paper in a breeze */
+  .map-tag-fo { overflow: visible; }
+  @keyframes tag-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+  .map-tag {
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;   /* the card hugs the bottom edge, nearest its string */
+    pointer-events: none;
+    overflow: visible;
+    animation: tag-float 3.6s ease-in-out infinite;
+    animation-delay: var(--fd, 0s);
+  }
+  .map-tag.below { justify-content: flex-start; }
+  .tag-card {
+    pointer-events: auto;
+    cursor: pointer;
+    background: #fbf5e2;
+    border: 1.5px solid #c2a468;
+    border-radius: 4px;
+    box-shadow: 2px 3px 8px rgba(90,60,20,0.22);
+    padding: 7px 10px 8px;
+    text-align: center;
+    transition: transform 0.15s, border-color 0.15s;
+  }
+  .tag-card:hover { transform: scale(1.05); border-color: #b5482a; }
+  .tag-value {
+    font-family: 'Bradley Hand', 'Segoe Print', 'Comic Sans MS', 'Comic Neue', cursive;
+    font-size: 15px;
+    font-weight: 700;
+    color: #46331a;
+    line-height: 1.25;
+  }
+  .tag-card.drawing { border-style: dashed; border-color: #b5482a; }
+  .tag-card.drawing .tag-value { color: #8c5a18; font-style: italic; }
+  @keyframes tag-pop { from { opacity: 0; transform: translateY(8px) scale(0.85); } }
+  .tag-card.pop { animation: tag-pop 0.35s cubic-bezier(0.2, 0.7, 0.3, 1); }
+
+  .kart-reset {
+    background: rgba(122,82,48,0.08);
+    border: 1.5px solid #a8874f;
+    color: #7a5230;
+    padding: 9px 22px;
+    border-radius: 999px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .kart-reset:hover { background: rgba(122,82,48,0.16); }
+
+  /* SPIN ALL */
+  #spin-all-btn {
+    margin-top: 45px;
+    padding: 18px 60px;
+    font-size: 1.25rem;
+    border: none;
+    border-radius: 50px;
+    background: linear-gradient(135deg, var(--gold), var(--gold-2));
+    color: var(--on-gold);
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    text-transform: uppercase;
+    box-shadow: 0 8px 30px color-mix(in srgb, var(--gold) 45%, transparent);
+    transition: opacity 0.2s, transform 0.1s;
+  }
+  #spin-all-btn:hover:not(:disabled) { opacity: 0.88; }
+  #spin-all-btn:active:not(:disabled) { transform: scale(0.97); }
+  #spin-all-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* RESULT BANNER */
+  #result-banner {
+    margin-top: 35px;
+    width: 100%;
+    max-width: 1375px;
+    background: linear-gradient(135deg, var(--card), var(--surface));
+    border: 1px solid color-mix(in srgb, var(--gold) 30%, transparent);
+    border-radius: 18px;
+    padding: 20px 30px;
+    display: none;
+    gap: 15px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  #result-banner.show { display: flex; }
+  .result-chip {
+    background: var(--bump);
+    border: 1px solid transparent;
+    border-radius: 10px;
+    padding: 8px 18px;
+    font-size: 1.02rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, transform 0.1s;
+    position: relative;
+  }
+  .result-chip:hover {
+    background: color-mix(in srgb, var(--accent) 15%, transparent);
+    border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+  .result-chip:active { transform: scale(0.96); }
+  .result-chip .rc-label { color: var(--gold); font-size: 0.81rem; text-transform: uppercase; letter-spacing: 0.1em; }
+  .result-chip .rc-value { color: var(--text); font-weight: 600; }
+  .result-chip .rc-respin {
+    color: var(--accent);
+    font-size: 0.78rem;
+    font-weight: 700;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .result-chip:hover .rc-respin { opacity: 1; }
+  .banner-reset-btn {
+    align-self: center;
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+    color: var(--accent);
+    border-radius: 10px;
+    padding: 10px 22px;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: background 0.15s;
+  }
+  .banner-reset-btn:hover { background: color-mix(in srgb, var(--accent) 28%, transparent); }
+
+  /* SHARE: ROUND SPLIT BUTTON (text + image) */
+  #share-row {
+    margin-top: 14px;
+    width: 100%;
+    display: none;
+    justify-content: center;
+  }
+  #share-row.show { display: flex; }
+
+  .share-pod {
+    position: relative;
+    width: 240px;
+    height: 84px;
+  }
+  /* Liquid blobs behind the buttons; the goo filter melts them together while splitting */
+  .share-goo {
+    position: absolute;
+    inset: 0;
+    filter: url(#goo) drop-shadow(0 6px 22px color-mix(in srgb, var(--gold) 40%, transparent));
+    pointer-events: none;
+  }
+  .share-blob {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 66px;
+    height: 66px;
+    margin: -33px 0 0 -33px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold), var(--gold-2));
+    transition: transform 0.55s cubic-bezier(0.6, -0.3, 0.3, 1.4);
+  }
+  .share-pod.split .share-blob.left { transform: translateX(-54px); }
+  .share-pod.split .share-blob.right { transform: translateX(54px); }
+  .share-blob.mid { transition: transform 0.4s ease 0.12s; }
+  .share-pod.split .share-blob.mid { transform: scale(0); }
+
+  .share-fab,
+  .share-act {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 66px;
+    height: 66px;
+    margin: -33px 0 0 -33px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: var(--on-gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+  }
+  .share-fab svg,
+  .share-act svg {
+    width: 27px;
+    height: 27px;
+    transition: transform 0.15s;
+  }
+  .share-fab:hover svg,
+  .share-act:hover svg { transform: scale(1.12); }
+  .share-fab { transition: opacity 0.2s, transform 0.3s; }
+  .share-pod.split .share-fab {
+    opacity: 0;
+    transform: scale(0.4);
+    pointer-events: none;
+  }
+  .share-act {
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.55s cubic-bezier(0.6, -0.3, 0.3, 1.4), opacity 0.25s ease 0.12s;
+  }
+  .share-pod.split .share-act { opacity: 1; pointer-events: auto; }
+  .share-pod.split .share-act.left { transform: translateX(-54px); }
+  .share-pod.split .share-act.right { transform: translateX(54px); }
+
+  /* ===== TOOL PANEL ===== */
+  #tool-toggle {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    background: var(--card);
+    border: 2px solid var(--line);
+    color: var(--text);
+    font-size: 25px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    box-shadow: 0 5px 20px var(--shadow);
+    transition: background 0.2s, transform 0.3s;
+  }
+  #tool-toggle:hover { background: color-mix(in srgb, var(--card) 86%, var(--text)); }
+  #tool-toggle.open { transform: rotate(90deg); }
+
+  #home-btn {
+    position: fixed;
+    top: 24px;
+    left: 24px;
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    background: var(--card);
+    border: 2px solid var(--line);
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    box-shadow: 0 5px 20px var(--shadow);
+    transition: background 0.2s, transform 0.15s;
+  }
+  #home-btn svg { width: 26px; height: 26px; }
+  #home-btn:hover { background: color-mix(in srgb, var(--card) 86%, var(--text)); transform: scale(1.07); }
+
+  /* The floating buttons wear each mode's costume (parchment on the map,
+     cream card-stock on the felt) instead of the palette's navy. */
+  body[data-view="kort"] #tool-toggle,
+  body[data-view="kort"] #home-btn {
+    background: #f4ecd8;
+    border-color: #d9cba4;
+    color: #1f4a3c;
+    box-shadow: 0 5px 20px rgba(0, 22, 14, 0.45);
+  }
+  body[data-view="kort"] #tool-toggle:hover,
+  body[data-view="kort"] #home-btn:hover { background: #fffdf4; }
+  body[data-view="kart"] #tool-toggle,
+  body[data-view="kart"] #home-btn {
+    background: #f8f1dc;
+    border-color: #b99a63;
+    color: #7a5230;
+    box-shadow: 0 5px 18px rgba(96, 66, 20, 0.35);
+  }
+  body[data-view="kart"] #tool-toggle:hover,
+  body[data-view="kart"] #home-btn:hover { background: #fffaeb; }
+
+  #tool-panel {
+    position: fixed;
+    top: 0; right: 0;
+    height: 100vh;
+    height: 100dvh;
+    width: min(450px, 100vw);
+    background: var(--panel);
+    border-left: 1px solid var(--line);
+    box-shadow: -8px 0 32px var(--shadow);
+    z-index: 99;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+    overflow: hidden;
+  }
+  #tool-panel.open { transform: translateX(0); }
+
+  .tp-header {
+    padding: 25px 100px 20px 25px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .tp-header h2 { font-size: 1.25rem; font-weight: 700; color: var(--gold); }
+
+  .tp-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+  }
+
+  .tp-section { display: flex; flex-direction: column; gap: 12px; }
+  .tp-section-title {
+    font-size: 0.88rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    font-weight: 700;
+  }
+
+  /* Board list */
+  .board-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .board-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bump);
+    border-radius: 10px;
+    padding: 10px 13px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .board-item:hover { background: var(--bump-2); }
+  .board-item.active { border-color: var(--gold); background: color-mix(in srgb, var(--gold) 9%, transparent); }
+  .board-item-name { flex: 1; font-size: 1.1rem; font-weight: 600; }
+  .board-item-del {
+    background: none; border: none; color: var(--muted);
+    cursor: pointer; font-size: 19px; line-height: 1; padding: 3px 5px;
+    border-radius: 5px;
+    transition: color 0.15s, background 0.15s;
+  }
+  .board-item-del:hover { color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+  .board-item-del.armed {
+    color: var(--on-accent);
+    background: var(--accent);
+    font-size: 0.88rem;
+    font-weight: 700;
+    padding: 4px 10px;
+  }
+
+  /* Save board */
+  .save-row {
+    display: flex;
+    gap: 10px;
+  }
+  .tp-input {
+    flex: 1;
+    background: var(--bump);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 1.06rem;
+    padding: 10px 15px;
+    outline: none;
+  }
+  .tp-input:focus { border-color: var(--gold); }
+  .tp-btn {
+    background: var(--gold);
+    color: var(--on-gold);
+    border: none;
+    border-radius: 10px;
+    padding: 10px 18px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .tp-btn:hover { opacity: 0.85; }
+  .tp-btn.secondary {
+    background: var(--bump);
+    color: var(--text);
+  }
+  .tp-btn.secondary:hover { background: var(--bump-2); }
+  .tp-btn.danger {
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+  .tp-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  /* Criteria editor */
+  .cat-editor { display: flex; flex-direction: column; gap: 12px; }
+  .cat-editor-label {
+    font-size: 0.98rem;
+    color: var(--gold);
+    font-weight: 700;
+    margin-top: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .cat-del {
+    background: none; border: none; color: var(--muted);
+    cursor: pointer; font-size: 15px; line-height: 1; padding: 3px 6px;
+    border-radius: 5px;
+    transition: color 0.15s, background 0.15s;
+  }
+  .cat-del:hover { color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+  .cat-del.armed {
+    color: var(--on-accent);
+    background: var(--accent);
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 4px 9px;
+  }
+  .criteria-tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .criteria-tag {
+    background: var(--bump);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 5px 10px;
+    font-size: 0.98rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .criteria-tag button {
+    background: none; border: none; color: var(--muted);
+    cursor: pointer; font-size: 15px; line-height: 1; padding: 0;
+  }
+  .criteria-tag button:hover { color: var(--accent); }
+  .add-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 3px;
+  }
+  .add-row input {
+    flex: 1;
+    background: var(--bump);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 1rem;
+    padding: 8px 13px;
+    outline: none;
+  }
+  .add-row input:focus { border-color: color-mix(in srgb, var(--gold) 50%, transparent); }
+  .add-row button {
+    background: color-mix(in srgb, var(--gold) 15%, transparent);
+    border: 1px solid color-mix(in srgb, var(--gold) 32%, transparent);
+    color: var(--gold);
+    border-radius: 8px;
+    padding: 8px 13px;
+    font-size: 1rem;
+    cursor: pointer;
+    font-weight: 700;
+  }
+  .add-row button:hover { background: color-mix(in srgb, var(--gold) 25%, transparent); }
+
+  /* Palette picker */
+  .palette-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .palette-swatch {
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 0;
+  }
+  .pal-circle {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: 2px solid var(--line);
+    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+  }
+  .palette-swatch:hover .pal-circle { transform: scale(1.07); }
+  .palette-swatch.active .pal-circle {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--gold) 30%, transparent);
+  }
+  .pal-name { font-size: 0.85rem; color: var(--muted); font-weight: 600; }
+  .palette-swatch.active .pal-name { color: var(--gold); font-weight: 700; }
+
+  /* Tabs */
+  .tp-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--line);
+    flex-shrink: 0;
+  }
+  .tp-tab {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    padding: 14px 8px;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -1px;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .tp-tab:hover { color: var(--text); }
+  .tp-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+  .tp-tabpanel {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+  }
+  .tp-tabpanel[hidden] { display: none; }
+
+  /* Divider */
+  .tp-divider {
+    height: 1px;
+    background: var(--line);
+  }
+
+  /* ===== VERSION CHOOSER ===== */
+  #chooser {
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    overflow: hidden;
+    background: var(--bg);
+    transition: opacity 0.32s ease;
+    --skew: -15deg;   /* ~75° dividers on wide screens */
+    --unskew: 15deg;
+  }
+  #chooser[hidden] { display: none; }
+
+  .chooser-row {
+    position: absolute;
+    top: 0; bottom: 0;
+    left: -6vw; right: -6vw;
+    display: flex;
+  }
+
+  .chooser-panel {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    transform: skewX(var(--skew));
+    border-left: 3px solid var(--bg);
+    background: var(--surface);
+    padding: 0;
+    cursor: pointer;
+    color: var(--text);
+    font-family: inherit;
+    transition: transform 0.55s cubic-bezier(0.6,0,0.3,1), opacity 0.45s ease, flex-grow 0.55s cubic-bezier(0.6,0,0.3,1);
+  }
+  .chooser-panel:first-child { border-left: none; }
+  .chooser-panel:disabled { cursor: default; }
+
+  /* One compact, self-contained emblem above the title; nothing bleeds full-bleed. */
+  .panel-emblem {
+    width: 88px;
+    height: 88px;
+    margin-bottom: 4px;
+    transition: transform 0.2s ease;
+  }
+  .panel-emblem svg { width: 100%; height: 100%; display: block; }
+  .chooser-panel.soon .panel-emblem { opacity: 0.45; }
+  .chooser-panel.soon .panel-name { opacity: 0.82; }
+
+  /* Labels sit at the panel's vertical centre, where the skew induces no sideways
+     shift, so they stay centred on screen and follow the hover/expand width change. */
+  .panel-content {
+    position: absolute;
+    left: 0; right: 0; top: 50%;
+    transform: translateY(-50%) skewX(var(--unskew));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 0 8%;
+    text-align: center;
+    pointer-events: none;
+  }
+  .panel-name {
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    color: inherit;
+  }
+  .panel-tagline { font-size: 0.95rem; color: inherit; opacity: 0.72; }
+  .panel-cta {
+    margin-top: 6px;
+    font-size: 0.9rem; font-weight: 700; letter-spacing: 0.05em;
+    color: var(--on-gold);
+    background: var(--gold);
+    padding: 9px 22px; border-radius: 999px;
+    text-transform: uppercase;
+  }
+  .panel-badge {
+    margin-top: 6px;
+    font-size: 0.82rem; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 7px 17px; border-radius: 999px;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    background: var(--bump);
+  }
+  .panel-badge.soon { color: var(--gold); border-color: color-mix(in srgb, var(--gold) 40%, transparent); }
+
+  .chooser-panel:not(:disabled):hover { flex-grow: 1.7; }
+  .chooser-panel:not(:disabled):hover .panel-emblem { transform: scale(1.1); }
+
+  /* select animation: siblings slide out, chosen expands to fullscreen */
+  #chooser.choosing .chooser-panel { pointer-events: none; }
+  #chooser.choosing .chooser-panel.exit-left  { transform: translateX(-150%) skewX(var(--skew)); opacity: 0; flex-grow: 0; }
+  #chooser.choosing .chooser-panel.exit-right { transform: translateX(150%) skewX(var(--skew));  opacity: 0; flex-grow: 0; }
+  #chooser.choosing .chooser-panel.chosen { flex-grow: 60; transform: skewX(0deg); }
+  #chooser.choosing .chooser-panel.chosen .panel-content { transform: translateY(-50%) skewX(0deg); }
+
+  /* chooser chrome */
+  .chooser-top {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 20px;
+    pointer-events: none;
+  }
+  .chooser-title {
+    font-size: 1.02rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    background: color-mix(in srgb, var(--bg) 66%, transparent);
+    padding: 9px 24px;
+    border-radius: 999px;
+  }
+  #chooser-close {
+    position: absolute;
+    top: 18px; right: 22px;
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: color-mix(in srgb, var(--bg) 55%, transparent);
+    color: var(--text);
+    font-size: 21px; cursor: pointer;
+    z-index: 6;
+    display: none;
+    align-items: center; justify-content: center;
+  }
+  #chooser-close:hover { background: var(--bump-2); }
+  #chooser.dismissable #chooser-close { display: flex; }
+
+  /* gear attention cue after a choice */
+  @keyframes gear-cue { from { transform: rotate(0deg); } to { transform: rotate(720deg); } }
+  #tool-toggle.cue { animation: gear-cue 0.9s ease-out; }
+
+  /* Responsive chooser: gentler angle + smaller labels on narrow / portrait screens.
+     Placed after the base rules so the overrides win at equal specificity. */
+  @media (max-aspect-ratio: 1 / 1) {
+    #chooser { --skew: -8deg; --unskew: 8deg; }
+    .panel-emblem { width: 66px; height: 66px; }
+    .panel-name { font-size: 1.2rem; }
+    .panel-tagline { font-size: 0.85rem; }
+    .chooser-title { font-size: 0.82rem; letter-spacing: 0.1em; padding: 8px 16px; }
+  }
+
+  /* Narrow screens: keep the title inside the viewport and clear of the gear */
+  @media (max-width: 540px) {
+    body { padding: 20px 14px 22px; }
+    h1 { font-size: 1.65rem; margin-top: 44px; }
+    .subtitle { font-size: 0.98rem; }
+    #tool-toggle { width: 46px; height: 46px; top: 14px; right: 14px; font-size: 21px; }
+    #home-btn { width: 46px; height: 46px; top: 14px; left: 14px; }
+    #home-btn svg { width: 22px; height: 22px; }
+  }
+
+  /* ===== SITE FOOTER ===== */
+  .site-footer {
+    margin-top: auto;            /* body is a min-height flex column: sit at the bottom */
+    padding-top: 72px;
+    font-size: 0.85rem;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.6;
+  }
+  .site-footer .sep { margin: 0 0.15em; opacity: 0.7; }
+  .site-footer a { color: inherit; text-decoration: none; }
+  /* «Kontakt» becomes a real link as soon as it gets an href */
+  .site-footer a[href] { text-decoration: underline; text-underline-offset: 3px; }
+  .site-footer a[href]:hover { color: var(--text); }
+  body[data-view="kort"] .site-footer { color: #9fb8a8; }
+  body[data-view="kort"] .site-footer a[href]:hover { color: #f1ece0; }
+  body[data-view="kart"] .site-footer { color: #97815b; }
+  body[data-view="kart"] .site-footer a[href]:hover { color: #6b5124; }
+
+  .chooser-foot {
+    position: absolute;
+    left: 0; right: 0; bottom: 18px;
+    z-index: 5;
+    display: flex;
+    justify-content: center;
+    padding: 0 16px;
+    pointer-events: none;
+  }
+  .chooser-foot .site-footer {
+    margin: 0;
+    padding: 7px 18px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    color: var(--muted);
+    background: color-mix(in srgb, var(--bg) 70%, transparent);
+    pointer-events: auto;
+  }
+  /* Narrow screens: stack the three parts instead of letting «· Kontakt»
+     wrap onto a line of its own */
+  @media (max-width: 540px) {
+    .site-footer .sep { display: none; }
+    .site-footer .seg { display: block; }
+    .chooser-foot .site-footer { border-radius: 14px; }
+  }
+
+  /* Notification toast */
+  #toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(75px);
+    background: var(--toast);
+    border: 1px solid var(--gold);
+    color: var(--text);
+    border-radius: 12px;
+    padding: 13px 28px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    z-index: 200;
+    transition: transform 0.3s ease, opacity 0.3s;
+    opacity: 0;
+    pointer-events: none;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+</style>
+</head>
+<body>
+
+<h1>Fortellerverksted</h1>
+<p class="subtitle">Snurr hjulene for å finne byggeklossene til historien</p>
+<p class="board-label">Aktivt sett</p>
+<p id="board-name-display">Standard</p>
+
+<div id="view-root"></div>
+
+<button id="spin-all-btn">Snurr alle</button>
+
+<div id="result-banner"></div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <filter id="goo" x="-40%" y="-60%" width="180%" height="220%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="9" result="blur"/>
+      <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -10" result="goo"/>
+      <feComposite in="SourceGraphic" in2="goo" operator="atop"/>
+    </filter>
+  </defs>
+</svg>
+
+<div id="share-row">
+  <div class="share-pod" id="share-pod">
+    <div class="share-goo" aria-hidden="true">
+      <span class="share-blob left"></span>
+      <span class="share-blob right"></span>
+      <span class="share-blob mid"></span>
+    </div>
+    <button class="share-act left" id="share-text-btn" title="Kopier som tekst" aria-label="Kopier byggeklossene som tekst">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z"/>
+        <path d="M14 2v5h5"/>
+        <line x1="9" y1="13" x2="15" y2="13"/>
+        <line x1="9" y1="17" x2="15" y2="17"/>
+      </svg>
+    </button>
+    <button class="share-act right" id="share-image-btn" title="Lagre som bilde" aria-label="Lagre byggeklossene som bilde">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="3" y="5" width="18" height="14" rx="2"/>
+        <circle cx="8.5" cy="10.5" r="1.5"/>
+        <path d="m21 15-4.5-4.5L7 19"/>
+      </svg>
+    </button>
+    <button class="share-fab" id="share-open-btn" title="Del byggeklossene" aria-label="Del byggeklossene">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 3v12"/>
+        <path d="m7 8 5-5 5 5"/>
+        <path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<footer class="site-footer" id="site-footer">
+  <span class="seg">© 2026 Theodor Sandaker</span> <span class="sep">·</span> <span class="seg">Alle rettigheter forbeholdt</span> <span class="sep">·</span> <!-- Når utvikler-e-posten finnes: legg til href="mailto:adressen@eksempel.no" på lenken under. --><a id="kontakt-lenke" class="seg">Kontakt</a>
+</footer>
+
+<button id="home-btn" title="Til startsiden" aria-label="Gå til startsiden">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M3 11.5 12 4l9 7.5"/>
+    <path d="M5.5 10v10h13V10"/>
+    <path d="M10 20v-5.5h4V20"/>
+  </svg>
+</button>
+<button id="tool-toggle" title="Åpne/lukk verktøymeny">⚙</button>
+
+<div id="tool-panel">
+  <div class="tp-header">
+    <h2>Verktøymeny</h2>
+  </div>
+  <div class="tp-tabs" role="tablist" aria-label="Verktøymeny">
+    <button class="tp-tab active" data-tab="byggeklosser" role="tab" aria-selected="true" aria-controls="panel-byggeklosser">Byggeklosser</button>
+    <button class="tp-tab" data-tab="utseende" role="tab" aria-selected="false" aria-controls="panel-utseende">Utseende</button>
+  </div>
+  <div class="tp-body">
+
+    <div class="tp-tabpanel" id="panel-byggeklosser" data-panel="byggeklosser" role="tabpanel">
+      <div class="tp-section">
+        <div class="tp-section-title">Lagrede sett (boards)</div>
+        <div class="board-list" id="board-list"></div>
+        <div class="save-row">
+          <input class="tp-input" id="board-name-input" type="text" placeholder="Navn på nytt sett…">
+          <button class="tp-btn" id="save-board-btn">Lagre</button>
+        </div>
+      </div>
+
+      <div class="tp-divider"></div>
+
+      <div class="tp-section">
+        <div class="tp-section-title">Rediger kriterier (gjeldende sett)</div>
+        <div class="cat-editor" id="cat-editor"></div>
+      </div>
+    </div>
+
+    <div class="tp-tabpanel" id="panel-utseende" data-panel="utseende" role="tabpanel" hidden>
+      <div class="tp-section">
+        <div class="tp-section-title">Fargepalett</div>
+        <div class="palette-list" id="palette-list"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="chooser" hidden>
+  <div class="chooser-row" id="chooser-row"></div>
+  <div class="chooser-top"><span class="chooser-title">Velg ditt fortellerverksted</span></div>
+  <button id="chooser-close" title="Lukk" aria-label="Lukk velgeren">✕</button>
+  <div class="chooser-foot" id="chooser-foot"></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ─── DEFAULT DATA ─────────────────────────────────────────────────────────────
+const DEFAULT_BOARD = {
+  name: 'Standard',
+  categories: [
+    {
+      id: 'person',
+      label: 'Person',
+      items: [
+        'Deg selv',
+        'En som er redd for alt',
+        'Et dyr',
+        'En ting',
+        'En detektiv',
+        'En blanding av dyr og menneske',
+      ],
+    },
+    {
+      id: 'type',
+      label: 'Type historie',
+      items: [
+        'Spenning',
+        'Eventyr',
+        'Skummel',
+        'Komedie',
+        'Fantasy',
+        'Science-fiction',
+      ],
+    },
+    {
+      id: 'sted',
+      label: 'Sted',
+      items: [
+        'Skolen',
+        'En båt',
+        'En grotte',
+        'Skogen',
+        'Verdensrommet',
+        'Et annet land',
+      ],
+    },
+    {
+      id: 'ting',
+      label: 'En ting du må ha med',
+      items: [
+        'Et brev',
+        'Noe magisk',
+        'Dårlig vær (storm)',
+        'En hund i bunad',
+        'En gammel bok',
+        'En mobiltelefon',
+      ],
+    },
+    {
+      id: 'tid',
+      label: 'Tid',
+      items: [
+        'For lenge siden',
+        'I nåtiden',
+        'I fremtiden',
+      ],
+    },
+  ],
+};
+
+// Innebygd sett for Eventyrkartet: Joseph Campbells «Heltens reise» i åtte
+// etapper, hver med seks alternativer (terning-kompatibelt). Fungerer også i
+// hjul- og kort-visningene som et vanlig sett.
+const HJ_BOARD = {
+  id: 'heltens-reise',
+  name: 'Heltens reise',
+  categories: [
+    {
+      id: 'hj_helt',
+      label: 'Helten',
+      items: [
+        'En helt vanlig skoleelev',
+        'En sjenert oppfinner',
+        'En gatekatt uten hjem',
+        'En ung viking',
+        'En robot som vil bli menneske',
+        'En tvilling som lever i skyggen',
+      ],
+    },
+    {
+      id: 'hj_kallet',
+      label: 'Kallet til eventyr',
+      items: [
+        'Et mystisk brev dukker opp',
+        'Noen i familien forsvinner',
+        'En fremmed ber om hjelp',
+        'Et kart faller ut av en gammel bok',
+        'En drøm som går i oppfyllelse',
+        'Et rop om hjelp ingen andre hører',
+      ],
+    },
+    {
+      id: 'hj_mentor',
+      label: 'Mentoren',
+      items: [
+        'En gammel nabo med hemmeligheter',
+        'En snakkende ravn',
+        'En bibliotekar som vet alt',
+        'Gjenferdet av en glemt helt',
+        'En eksentrisk oppfinner',
+        'En bestemor med magiske evner',
+      ],
+    },
+    {
+      id: 'hj_terskel',
+      label: 'Over terskelen',
+      items: [
+        'En skjult dal bak fossen',
+        'En by dypt under jorden',
+        'Et land der tiden står stille',
+        'En øy som ikke finnes på kartet',
+        'En verden på innsiden av speilet',
+        'Et slott høyt oppe i skyene',
+      ],
+    },
+    {
+      id: 'hj_provelser',
+      label: 'Prøvelser',
+      items: [
+        'En gåte som må løses før soloppgang',
+        'En bro voktet av et troll',
+        'En venn som viser seg å være spion',
+        'En labyrint som forandrer seg',
+        'En storm som splitter følget',
+        'En turnering med farlige regler',
+      ],
+    },
+    {
+      id: 'hj_prove',
+      label: 'Den store prøven',
+      items: [
+        'Møtet med dragen i hulen',
+        'En kamp mot sin egen frykt',
+        'Skyggekongen krever et offer',
+        'En venn må reddes fra fangenskap',
+        'En felle klapper igjen',
+        'En sannhet som forandrer alt',
+      ],
+    },
+    {
+      id: 'hj_belonning',
+      label: 'Belønningen',
+      items: [
+        'En magisk gjenstand',
+        'En hemmelighet om familien',
+        'Et vennskap for livet',
+        'Mot til å si det ingen tør å si',
+        'Nøkkelen til å redde hjembyen',
+        'En kraft helten ikke visste om',
+      ],
+    },
+    {
+      id: 'hj_hjemreise',
+      label: 'Hjemreisen',
+      items: [
+        'Helten kommer hjem som en ny person',
+        'Hjemstedet er i fare og må reddes',
+        'Ingen tror på det helten forteller',
+        'En venn fra reisen blir med hjem',
+        'Fienden følger etter helten hjem',
+        'Helten deler gaven med alle',
+      ],
+    },
+  ],
+};
+
+// ─── COLOR PALETTES ───────────────────────────────────────────────────────────
+const PALETTES = [
+  {
+    id: 'standard',
+    name: 'Standard',
+    vars: {
+      '--bg': '#1a1a2e', '--surface': '#16213e', '--card': '#0f3460',
+      '--machine': '#090e1a', '--panel': '#0d1b36', '--toast': '#1e3a5f',
+      '--accent': '#e94560', '--accent-2': '#c0392b',
+      '--gold': '#f5a623', '--gold-2': '#e67e22',
+      '--text': '#eaeaea', '--muted': '#8892a4',
+      '--on-accent': '#ffffff', '--on-gold': '#1a1a2e',
+      '--line': 'rgba(255,255,255,0.09)', '--bump': 'rgba(255,255,255,0.06)',
+      '--bump-2': 'rgba(255,255,255,0.11)', '--shadow': 'rgba(0,0,0,0.5)',
+    },
+  },
+  {
+    id: 'skog',
+    name: 'Skog',
+    vars: {
+      '--bg': '#152019', '--surface': '#1a2a20', '--card': '#24513a',
+      '--machine': '#0a120d', '--panel': '#101b14', '--toast': '#2a4a39',
+      '--accent': '#e9724c', '--accent-2': '#c2502d',
+      '--gold': '#d4a73c', '--gold-2': '#b88a28',
+      '--text': '#ecefe9', '--muted': '#90a394',
+      '--on-accent': '#ffffff', '--on-gold': '#152019',
+      '--line': 'rgba(255,255,255,0.09)', '--bump': 'rgba(255,255,255,0.06)',
+      '--bump-2': 'rgba(255,255,255,0.11)', '--shadow': 'rgba(0,0,0,0.5)',
+    },
+  },
+  {
+    id: 'hav',
+    name: 'Hav',
+    vars: {
+      '--bg': '#0e1d26', '--surface': '#112934', '--card': '#14485a',
+      '--machine': '#060f14', '--panel': '#0a1820', '--toast': '#1b4254',
+      '--accent': '#ff6f61', '--accent-2': '#d24a3e',
+      '--gold': '#35c4b5', '--gold-2': '#1f9e92',
+      '--text': '#e7f1f2', '--muted': '#84a2ab',
+      '--on-accent': '#ffffff', '--on-gold': '#0e1d26',
+      '--line': 'rgba(255,255,255,0.09)', '--bump': 'rgba(255,255,255,0.06)',
+      '--bump-2': 'rgba(255,255,255,0.11)', '--shadow': 'rgba(0,0,0,0.5)',
+    },
+  },
+  {
+    id: 'solnedgang',
+    name: 'Solnedgang',
+    vars: {
+      '--bg': '#241632', '--surface': '#2d1c40', '--card': '#46295e',
+      '--machine': '#140b1f', '--panel': '#1b1029', '--toast': '#3c2752',
+      '--accent': '#ff5e7e', '--accent-2': '#d23f63',
+      '--gold': '#ffb169', '--gold-2': '#ef8f3e',
+      '--text': '#f1eaf4', '--muted': '#a08fb0',
+      '--on-accent': '#ffffff', '--on-gold': '#241632',
+      '--line': 'rgba(255,255,255,0.09)', '--bump': 'rgba(255,255,255,0.06)',
+      '--bump-2': 'rgba(255,255,255,0.11)', '--shadow': 'rgba(0,0,0,0.5)',
+    },
+  },
+  {
+    id: 'lys',
+    name: 'Lys',
+    vars: {
+      '--bg': '#f3efe6', '--surface': '#fdfbf6', '--card': '#ffffff',
+      '--machine': '#fdfcf9', '--panel': '#faf7f0', '--toast': '#ffffff',
+      '--accent': '#d94f64', '--accent-2': '#b73a4e',
+      '--gold': '#b07c1a', '--gold-2': '#946408',
+      '--text': '#2c2a33', '--muted': '#76737f',
+      '--on-accent': '#ffffff', '--on-gold': '#ffffff',
+      '--line': 'rgba(0,0,0,0.12)', '--bump': 'rgba(0,0,0,0.05)',
+      '--bump-2': 'rgba(0,0,0,0.09)', '--shadow': 'rgba(80,70,50,0.2)',
+    },
+  },
+];
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+// The engine state is view-agnostic. `draws` holds, per category, which item index
+// is currently shown and whether the user has spun it. The active view only renders
+// and animates; the engine owns selection, the spin lock, and persistence.
+let state = loadState();
+let activeBoardId = state.activeBoardId;
+let boards = state.boards;
+let currentPalette = state.palette || 'standard';
+let currentView = state.view || 'hjul';
+let hasChosen = state.chosen || false;   // has the user picked a version via the chooser?
+let draws = {};          // catId -> { index, spun }
+let drawsEpoch = 0;      // bumped by initDraws so stale spin-commits can be dropped
+let spinning = false;
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem('fortellerverksted');
+    if (raw) {
+      const s = JSON.parse(raw);
+      // One-time seeding of the built-in «Heltens reise» board for existing users.
+      // The flag keeps a deliberate deletion from resurrecting it on every load.
+      if (!s.seededHJ) {
+        if (!s.boards.some(b => b.id === HJ_BOARD.id)) {
+          s.boards.push(JSON.parse(JSON.stringify(HJ_BOARD)));
+        }
+        s.seededHJ = true;
+      }
+      return s;
+    }
+  } catch(e) {}
+  return {
+    activeBoardId: 'default',
+    boards: [{ id: 'default', ...DEFAULT_BOARD }, JSON.parse(JSON.stringify(HJ_BOARD))],
+    palette: 'standard',
+    view: 'hjul',
+    seededHJ: true,
+  };
+}
+
+function saveState() {
+  localStorage.setItem('fortellerverksted', JSON.stringify({
+    activeBoardId, boards, palette: currentPalette, view: currentView, chosen: hasChosen,
+    seededHJ: true,
+  }));
+}
+
+function activeBoard() {
+  return boards.find(b => b.id === activeBoardId) || boards[0];
+}
+
+function boardCat(id) {
+  return activeBoard().categories.find(c => c.id === id);
+}
+
+// Reset all draws for the active board to a clean, unspun resting state.
+function initDraws() {
+  drawsEpoch++;
+  draws = {};
+  activeBoard().categories.forEach(cat => { draws[cat.id] = { index: 0, spun: false }; });
+}
+
+// ─── PALETTE HANDLING ─────────────────────────────────────────────────────────
+function applyPalette(id) {
+  const p = PALETTES.find(p => p.id === id) || PALETTES[0];
+  Object.entries(p.vars).forEach(([k, v]) => document.documentElement.style.setProperty(k, v));
+}
+
+function renderPaletteList() {
+  const list = document.getElementById('palette-list');
+  list.innerHTML = '';
+  PALETTES.forEach(p => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'palette-swatch' + (p.id === currentPalette ? ' active' : '');
+    btn.title = p.name;
+
+    const circle = document.createElement('span');
+    circle.className = 'pal-circle';
+    circle.style.background = `linear-gradient(to right, ${p.vars['--bg']} 0 25%, ${p.vars['--card']} 25% 50%, ${p.vars['--gold']} 50% 75%, ${p.vars['--accent']} 75% 100%)`;
+
+    const name = document.createElement('span');
+    name.className = 'pal-name';
+    name.textContent = p.name;
+
+    btn.appendChild(circle);
+    btn.appendChild(name);
+    btn.addEventListener('click', () => {
+      currentPalette = p.id;
+      applyPalette(p.id);
+      saveState();
+      renderPaletteList();
+    });
+    list.appendChild(btn);
+  });
+}
+
+// ─── ENGINE: selection, spin lock, mounting ───────────────────────────────────
+// View-agnostic. The engine picks targets, owns the spin lock, and asks the active
+// view to animate. A view implements:
+//   mount(container)                build its DOM for the active board
+//   spin(catId, from, to, done)     animate the draw, then call done()
+//   reset(catId, index)             render a category at rest on `index`
+//   setBusy(isBusy)                 (optional) reflect the lock on its own controls
+const viewRoot = document.getElementById('view-root');
+
+function getView(id) { return VIEWS.find(v => v.id === id) || VIEWS[0]; }
+function activeView() { return getView(currentView); }
+
+function mountView() {
+  const view = activeView();
+  document.body.setAttribute('data-view', view.id);
+  const subEl = document.querySelector('.subtitle');
+  if (subEl) subEl.textContent = view.subtitle || 'Snurr hjulene for å finne byggeklossene til historien';
+  const saBtn = document.getElementById('spin-all-btn');
+  if (saBtn) saBtn.textContent = view.spinAllLabel || 'Snurr alle';
+  viewRoot.className = '';
+  viewRoot.removeAttribute('style');
+  viewRoot.innerHTML = '';
+  view.mount(viewRoot);
+}
+
+// Rebuild from scratch: fresh draws + remount + cleared results. Used whenever the
+// board or its category structure changes.
+function remountView() {
+  initDraws();
+  mountView();
+  updateResultBanner();
+}
+
+function setBusy(b) {
+  document.getElementById('spin-all-btn').disabled = b;
+  document.querySelectorAll('.spin-btn').forEach(btn => {
+    btn.disabled = b;
+    btn.classList.toggle('spinning', b);
+  });
+  const view = activeView();
+  if (view.setBusy) view.setBusy(b);
+}
+
+function spinCategory(catId) {
+  if (spinning) return;
+  const cat = boardCat(catId);
+  if (!cat || cat.items.length === 0) return;
+
+  // A single option can't be spun, but it can be drawn — commit it directly so
+  // boards with brand-new categories still reach a complete, shareable result.
+  if (cat.items.length === 1) {
+    draws[catId] = { index: 0, spun: true };
+    updateResultBanner();
+    return;
+  }
+
+  spinning = true;
+  setBusy(true);
+
+  const total = cat.items.length;
+  const from = draws[catId].index;
+  let to;
+  do { to = Math.floor(Math.random() * total); } while (to === from);
+
+  const epoch = drawsEpoch;
+  activeView().spin(catId, from, to, () => {
+    spinning = false;
+    setBusy(false);
+    // Drop the commit if the board/draws were rebuilt mid-spin (e.g. board switch).
+    if (epoch === drawsEpoch && draws[catId]) {
+      draws[catId].index = to;
+      draws[catId].spun = true;
+    }
+    updateResultBanner();
+  });
+}
+
+function spinAll() {
+  if (spinning) return;
+  const cats = activeBoard().categories;
+  const view = activeView();
+  const epoch = drawsEpoch;
+  let i = 0;
+  (function next() {
+    if (i >= cats.length || epoch !== drawsEpoch) return; // board rebuilt mid-chain
+    if (spinning) { setTimeout(next, 120); return; }      // previous draw still settling
+    const cat = cats[i++];
+    spinCategory(cat.id);
+    const d = view.drawDuration ? view.drawDuration(cat) : (600 + 3 * cat.items.length * 18 + 100);
+    setTimeout(next, d + 120);
+  })();
+}
+
+function resetAll() {
+  if (spinning) return;
+  const view = activeView();
+  activeBoard().categories.forEach(cat => {
+    if (!draws[cat.id]) return;
+    draws[cat.id].spun = false;
+    draws[cat.id].index = 0;
+    view.reset(cat.id, 0);
+  });
+  updateResultBanner();
+}
+
+// ─── VIEW: «hjul» (slot machine) ──────────────────────────────────────────────
+const ITEM_H = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--slot-h')) || 65; // follows --slot-h
+
+const hjulView = {
+  id: 'hjul',
+  name: 'Lykkehjul',
+  subtitle: 'Snurr hjulene for å finne byggeklossene til historien',
+  spinAllLabel: 'Snurr alle',
+
+  mount(container) {
+    container.className = 'slots-grid';
+    activeBoard().categories.forEach(cat => {
+      const col = document.createElement('div');
+      col.className = 'slot-col';
+      col.innerHTML = `
+        <div class="slot-label">${cat.label}</div>
+        <div class="slot-machine" id="sm-${cat.id}">
+          <div class="slot-marker"></div>
+          <div class="reel" id="reel-${cat.id}"></div>
+        </div>
+        <button class="spin-btn" id="btn-${cat.id}">Snurr</button>`;
+      container.appendChild(col);
+      col.querySelector('.spin-btn').addEventListener('click', () => spinCategory(cat.id));
+      this.reset(cat.id, draws[cat.id]?.index || 0);
+    });
+  },
+
+  // Render a category's reel at rest, centred on `index`.
+  reset(catId, index) {
+    const reel = document.getElementById(`reel-${catId}`);
+    if (!reel) return;
+
+    // Cancel any pending spin-start callbacks and kill the spin transition,
+    // otherwise the rebuilt reel animates back from the old spin position.
+    if (reel._raf1) cancelAnimationFrame(reel._raf1);
+    if (reel._raf2) cancelAnimationFrame(reel._raf2);
+    reel._raf1 = reel._raf2 = null;
+    reel.style.transition = 'none';
+    reel.innerHTML = '';
+
+    const items = boardCat(catId).items;
+    const total = items.length;
+    const rendered = [];
+    rendered.push(items[(index - 1 + total) % total]);
+    for (let i = 0; i < total; i++) rendered.push(items[(index + i) % total]);
+    rendered.forEach((text, i) => {
+      const div = document.createElement('div');
+      div.className = 'reel-item' + (i === 1 ? ' center' : '');
+      div.textContent = text;
+      reel.appendChild(div);
+    });
+    reel.style.transform = 'translateY(0px)';
+  },
+
+  // Animate from `from` to `to` (slot-machine feel: ≥2 rounds), settle, then done().
+  spin(catId, from, to, done) {
+    const reel = document.getElementById(`reel-${catId}`);
+    const items = boardCat(catId).items;
+    const total = items.length;
+
+    const minRounds = 2;
+    const diff = ((to - from) + total) % total;
+    const steps = minRounds * total + diff;
+
+    reel.innerHTML = '';
+    const rendered = [];
+    rendered.push(items[(from - 1 + total) % total]);
+    for (let i = 0; i <= steps + 1; i++) rendered.push(items[(from + i) % total]);
+    rendered.forEach(text => {
+      const div = document.createElement('div');
+      div.className = 'reel-item';
+      div.textContent = text;
+      reel.appendChild(div);
+    });
+
+    reel.style.transition = 'none';
+    reel.style.transform = 'translateY(0px)';
+    const finalY = -(steps * ITEM_H);
+    const duration = 600 + steps * 18;
+
+    reel._raf1 = requestAnimationFrame(() => {
+      reel._raf2 = requestAnimationFrame(() => {
+        reel.style.transition = `transform ${duration}ms cubic-bezier(0.15, 0.0, 0.1, 1.0)`;
+        reel.style.transform = `translateY(${finalY}px)`;
+      });
+    });
+
+    setTimeout(() => {
+      this.reset(catId, to); // clean resting render at the landed index
+      done();
+    }, duration + 50);
+  },
+
+};
+
+// ─── VIEW: «kort» (card decks on a felt table) ────────────────────────────────
+const DECK_COLORS = ['#4f46b8', '#b03a55', '#1f8a6d', '#b4532a', '#8a4f9e', '#2b6cb0', '#a4761c', '#3d7a3d'];
+
+// Thematic stroke icons per category (24×24 viewBox), inspired by classic
+// adventure tales: the guiding star, the mysterious letter, the mentor's
+// lantern (the lamppost in Narnia), the door ajar (the wardrobe), the shield
+// of trials, the crossed swords of the ordeal, the treasure chest, and home.
+// Written with a colour parameter so the same markup renders inline in the
+// DOM and rasterises onto the share-image canvas. 'COL' = filled accents.
+const CAT_ICON_PATHS = {
+  hj_helt:      '<path d="M12 3l2.7 5.6 6.1.7-4.5 4.2 1.2 6-5.5-3-5.5 3 1.2-6L3.2 9.3l6.1-.7z"/>',
+  hj_kallet:    '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3.8 7.2 12 14l8.2-6.8"/><circle cx="12" cy="16.6" r="1.4" fill="COL" stroke="none"/>',
+  hj_mentor:    '<circle cx="12" cy="2.9" r="1.1"/><path d="M9.6 6.9c0-1.7 1-2.9 2.4-2.9s2.4 1.2 2.4 2.9"/><path d="M8.8 6.9h6.4"/><path d="M9.4 6.9 8.6 15.3h6.8L14.6 6.9"/><path d="M8 15.3h8l.5 2.4h-9z"/><path d="M12 9.4c1 .9 1.5 1.75 1.5 2.6a1.5 1.5 0 1 1-3 0c0-.85.5-1.7 1.5-2.6z"/>',
+  hj_terskel:   '<path d="M3 21h18"/><path d="M5.8 21V10.2a6.2 6.2 0 0 1 12.4 0V21"/><path d="M9.9 4.9V21"/><path d="M14.1 4.9V21"/><circle cx="16.3" cy="13" r="1.05" fill="COL" stroke="none"/>',
+  hj_provelser: '<path d="M12 3l7 2.8v5.1c0 4.3-2.9 7.6-7 9.6-4.1-2-7-5.3-7-9.6V5.8z"/><path d="M12 7.5v5"/><circle cx="12" cy="15.7" r="1.1" fill="COL" stroke="none"/>',
+  hj_prove:     '<path d="M4.5 4.5 16.6 16.6"/><path d="M15.7 12.9l-2.8 2.8"/><circle cx="17.6" cy="17.6" r="1" fill="COL" stroke="none"/><path d="M19.5 4.5 7.4 16.6"/><path d="M8.3 12.9l2.8 2.8"/><circle cx="6.4" cy="17.6" r="1" fill="COL" stroke="none"/>',
+  hj_belonning: '<path d="M4.5 11c0-3 3.3-5 7.5-5s7.5 2 7.5 5"/><rect x="4.5" y="11" width="15" height="8.5" rx="1.6"/><path d="M12 11v2.4"/><circle cx="12" cy="15.2" r="1.4"/>',
+  hj_hjemreise: '<path d="M3.5 11.5 12 4.5l8.5 7"/><path d="M6 9.8V20h12V9.8"/><path d="M10 20v-5h4v5"/>',
+  person: '<circle cx="12" cy="8" r="3.6"/><path d="M5 20c1.1-4 3.7-6 7-6s5.9 2 7 6"/>',
+  type:   '<path d="M12 6.2C10.4 4.8 8.3 4.2 6 4.2v13.6c2.3 0 4.4.6 6 2 1.6-1.4 3.7-2 6-2V4.2c-2.3 0-4.4.6-6 2z"/><path d="M12 6.2v13.6"/>',
+  sted:   '<path d="M12 21.5v-5M12 2.5V5"/><path d="M6 5h10.5L19 7.2 16.5 9.5H6z"/><path d="M18 12H7.8L5.5 14l2.3 2H18z"/>',
+  ting:   '<rect x="4.5" y="9.5" width="15" height="4"/><path d="M6.5 13.5V20h11v-6.5"/><path d="M12 9.5V20"/><path d="M12 9.5C8.5 9.5 7.5 6 9.8 6c1.6 0 2.2 2.2 2.2 3.5zm0 0c3.5 0 4.5-3.5 2.2-3.5-1.6 0-2.2 2.2-2.2 3.5z"/>',
+  tid:    '<path d="M6.5 3h11M6.5 21h11"/><path d="M8 3v2.6c0 2.6 4 4.2 4 6.4s-4 3.8-4 6.4V21"/><path d="M16 3v2.6c0 2.6-4 4.2-4 6.4s4 3.8 4 6.4V21"/>',
+};
+// Custom categories rotate through the classic suits.
+const FALLBACK_ICON_PATHS = [
+  '<path d="M12 3.5 19 12l-7 8.5L5 12z"/>',
+  '<path d="M12 20s-7-5.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 4.5-7 10-7 10z"/>',
+  '<path d="M12 3c2 3.5 5.5 5.6 5.5 9a4.3 4.3 0 0 1-4 4.4L15 20H9l1.5-3.6a4.3 4.3 0 0 1-4-4.4C6.5 8.6 10 6.5 12 3z"/>',
+  '<circle cx="12" cy="7.5" r="3.2"/><circle cx="7.5" cy="14" r="3.2"/><circle cx="16.5" cy="14" r="3.2"/><path d="M12 14.5 10.5 20h3z"/>',
+];
+
+function catIconInner(catId, index, color) {
+  const inner = CAT_ICON_PATHS[catId] || FALLBACK_ICON_PATHS[index % FALLBACK_ICON_PATHS.length];
+  return inner.replaceAll('COL', color);
+}
+
+function catIconSvg(catId, index, color, size = 24) {
+  return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${catIconInner(catId, index, color)}</svg>`;
+}
+
+// Card back: diagonal lattice, a calm double frame, and a centre medallion
+// carrying the category's icon — clean and classic.
+function deckBackSvg(catId, index, color, uid) {
+  return `<svg viewBox="0 0 120 168" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="display:block;width:100%;height:100%;">
+    <defs>
+      <pattern id="lat-${uid}" width="11" height="11" patternUnits="userSpaceOnUse">
+        <path d="M0 0 L11 11 M11 0 L0 11" stroke="#ffffff" stroke-opacity="0.13" stroke-width="1"/>
+      </pattern>
+    </defs>
+    <rect width="120" height="168" rx="8" fill="${color}"/>
+    <rect width="120" height="168" rx="8" fill="url(#lat-${uid})"/>
+    <rect x="6" y="6" width="108" height="156" rx="5" fill="none" stroke="#ffffff" stroke-opacity="0.8" stroke-width="2"/>
+    <rect x="10.5" y="10.5" width="99" height="147" rx="3.5" fill="none" stroke="#ffffff" stroke-opacity="0.45" stroke-width="1"/>
+    <circle cx="60" cy="84" r="30" fill="none" stroke="#ffffff" stroke-opacity="0.8" stroke-width="1.8"/>
+    <circle cx="60" cy="84" r="25" fill="#f7f0e1"/>
+    <g transform="translate(41.5 65.5) scale(1.54)" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${catIconInner(catId, index, color)}</g>
+    <g fill="#ffffff" fill-opacity="0.75">
+      <path d="M60 24 l4 5 -4 5 -4 -5 z"/>
+      <path d="M60 134 l4 5 -4 5 -4 -5 z"/>
+    </g>
+  </svg>`;
+}
+
+const kortView = {
+  id: 'kort',
+  name: 'Spillkort',
+  subtitle: 'Trekk fem kort — historien ligger i hånden din',
+  spinAllLabel: 'Del ut alle kortene',
+  drawDuration: () => 520,
+  ownResults: true,        // the fanned hand shows results instead of the chip banner
+
+  mount(container) {
+    container.className = 'kort-table';
+
+    const deckRow = document.createElement('div');
+    deckRow.className = 'deck-row';
+    activeBoard().categories.forEach((cat, i) => {
+      const color = DECK_COLORS[i % DECK_COLORS.length];
+      const deck = document.createElement('div');
+      deck.className = 'deck';
+      deck.innerHTML =
+        `<button class="deck-stack" data-cat="${cat.id}" style="--deck:${color}" aria-label="Trekk ${esc(cat.label)}">` +
+          `<div class="deck-card"><div class="deck-back">${deckBackSvg(cat.id, i, color, cat.id)}</div></div>` +
+        `</button>` +
+        `<div class="deck-label">${esc(cat.label)}</div>`;
+      deck.querySelector('.deck-stack').addEventListener('click', () => spinCategory(cat.id));
+      deckRow.appendChild(deck);
+    });
+    container.appendChild(deckRow);
+    this._deckRow = deckRow;
+
+    const handZone = document.createElement('div');
+    handZone.className = 'hand-zone';
+    handZone.innerHTML =
+      `<div class="hand-label">Hånden din</div>` +
+      `<div class="hand"></div>` +
+      `<div class="hand-empty">Trekk kort fra stokkene for å fylle hånden</div>` +
+      `<button class="hand-reset" type="button">Samle inn kortene</button>`;
+    container.appendChild(handZone);
+    this._handEl = handZone.querySelector('.hand');
+    this._handEmptyEl = handZone.querySelector('.hand-empty');
+    this._handResetEl = handZone.querySelector('.hand-reset');
+    this._handResetEl.addEventListener('click', resetAll);
+
+    this.renderHand();
+  },
+
+  // Decks are static face-down stacks; per-category resets just refresh the hand.
+  reset() { this.renderHand(); },
+
+  // Engine result hook: rebuild the fanned hand from the spun categories.
+  renderResults() { this.renderHand(); },
+
+  renderHand() {
+    if (!this._handEl) return;
+    const cats = activeBoard().categories.filter(c => draws[c.id]?.spun);
+    this._handEl.innerHTML = '';
+    if (this._handEmptyEl) this._handEmptyEl.style.display = cats.length ? 'none' : '';
+    if (this._handResetEl) this._handResetEl.style.display = cats.length ? '' : 'none';
+
+    // True fan: every card is only ROTATED, all about one shared pivot far
+    // below the hand. Bottom edges then lie on a perfect circular arc (no
+    // special cases at the ends), and the pivot radius is derived from the
+    // desired card pitch so spacing adapts to how many cards share the hand.
+    const n = cats.length;
+    const mid = (n - 1) / 2;
+    const CARD_W = 164, CARD_H = (CARD_W * 7) / 5;
+    const zoneW = Math.min(this._handEl.parentElement?.clientWidth || 1100, 1240);
+    const pitch = n > 1 ? Math.min(134, Math.max(62, (zoneW - CARD_W) / (n - 1))) : 0;
+    const stepDeg = n > 1 ? Math.min(4, 26 / (n - 1)) : 0;
+    const R = stepDeg > 0 ? pitch / ((stepDeg * Math.PI) / 180) : 0;
+    const maxRot = mid * stepDeg;
+    const dip = R ? (1 - Math.cos((maxRot * Math.PI) / 180)) * R : 0;
+    this._handEl.style.height = `${Math.ceil(CARD_H + dip + 30)}px`;
+
+    cats.forEach((cat, i) => {
+      const gi = activeBoard().categories.indexOf(cat);   // colour/icon follow the deck
+      const color = DECK_COLORS[gi % DECK_COLORS.length];
+      const rot = (i - mid) * stepDeg;
+      const dealt = cat.id === this._justDrew ? ' dealt' : '';
+      const card = document.createElement('div');
+      card.className = 'hand-card';
+      card.style.setProperty('--deck', color);
+      card.style.setProperty('--z', i);
+      card.style.transformOrigin = `50% ${(R || CARD_H).toFixed(0)}px`;
+      card.style.transform = `rotate(${rot.toFixed(2)}deg)`;
+      card.innerHTML =
+        `<div class="hc-inner${dealt}">` +
+          `<div class="hc-corner tl">${catIconSvg(cat.id, gi, color, 17)}</div>` +
+          `<div class="hc-corner br">${catIconSvg(cat.id, gi, color, 17)}</div>` +
+          `<div class="hc-art">${catIconSvg(cat.id, gi, color, 48)}</div>` +
+          `<div class="hc-cat">${esc(cat.label)}</div>` +
+          `<div class="hc-value">${esc(cat.items[draws[cat.id].index])}</div>` +
+        `</div>`;
+      this._handEl.appendChild(card);
+    });
+    this._justDrew = null;
+  },
+
+  // A draw: the deck deals; the engine then commits the value and renderResults
+  // deals the new card into the hand.
+  spin(catId, from, to, done) {
+    const deck = this._deckRow && this._deckRow.querySelector(`.deck-stack[data-cat="${catId}"]`);
+    if (deck) { deck.classList.remove('dealing'); void deck.offsetWidth; deck.classList.add('dealing'); }
+    this._justDrew = catId;
+    setTimeout(done, 420);
+  },
+
+  setBusy(b) {
+    if (!this._deckRow) return;
+    this._deckRow.querySelectorAll('.deck-stack').forEach(d => { d.disabled = b; });
+  },
+};
+
+// ─── VIEW: «kart» (Heltens reise as a pop-up map in an open book) ─────────────
+const KART_W = 1000, KART_H = 640, KART_CY = 350;
+
+// User-authored labels/options are interpolated into SVG/HTML strings here,
+// so they must be escaped (the other views build text nodes directly).
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
+}
+
+// Small hand-drawn map decorations, kept in the sepia/wash palette of the sheet.
+function mkMountains(x, y) {
+  return `<g fill="none" stroke="#8f7746" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.7" aria-hidden="true">
+    <path d="M ${x - 36} ${y + 12} L ${x - 17} ${y - 13} L ${x - 3} ${y + 9}"/>
+    <path d="M ${x - 8} ${y + 12} L ${x + 12} ${y - 18} L ${x + 30} ${y + 12}"/>
+    <path d="M ${x + 6} ${y - 9} l 6 7"/>
+  </g>`;
+}
+// A small wood: firs and leaf trees mixed, like the hundred-acre-wood maps.
+function mkForest(x, y) {
+  const fir = (tx, ty, s) =>
+    `<line x1="${tx}" y1="${ty + 4}" x2="${tx}" y2="${ty - 12 * s}" stroke="#6e7a4e" stroke-width="1.6"/>` +
+    `<path d="M ${tx} ${ty - 16 * s} L ${tx - 6 * s} ${ty - 4 * s} L ${tx + 6 * s} ${ty - 4 * s} Z" fill="#8aa86a" stroke="#688550" stroke-width="1.2"/>` +
+    `<path d="M ${tx} ${ty - 10 * s} L ${tx - 7.5 * s} ${ty + 3} L ${tx + 7.5 * s} ${ty + 3} Z" fill="#9ab77a" stroke="#688550" stroke-width="1.2"/>`;
+  const leaf = (tx, ty, r) =>
+    `<line x1="${tx}" y1="${ty + 4}" x2="${tx}" y2="${ty - 8}" stroke="#7d6438" stroke-width="1.7"/>` +
+    `<circle cx="${tx}" cy="${ty - r - 7}" r="${r}" fill="#a9bf85" stroke="#7d955c" stroke-width="1.3"/>`;
+  return `<g opacity="0.85" aria-hidden="true">
+    ${fir(x - 26, y + 2, 1)}${leaf(x - 8, y + 8, 8)}${fir(x + 10, y + 4, 1.2)}${leaf(x + 27, y + 6, 6)}${fir(x + 40, y, 0.9)}
+  </g>`;
+}
+function mkBirds(x, y) {
+  const bird = (bx, by, s) => `<path d="M ${bx - 5 * s} ${by} q 2.5 ${-4 * s} 5 0 q 2.5 ${-4 * s} 5 0" fill="none" stroke="#87795a" stroke-width="1.4" stroke-linecap="round"/>`;
+  return `<g opacity="0.7" aria-hidden="true">${bird(x, y, 1)}${bird(x + 20, y - 8, 0.8)}${bird(x - 14, y - 12, 0.65)}</g>`;
+}
+// A puffy storybook cloud for the sky above the book.
+function mkCloud(x, y, s) {
+  return `<g fill="#f7f0dc" stroke="#cdbd92" stroke-width="1.3" opacity="0.9" aria-hidden="true" transform="translate(${x} ${y}) scale(${s})">
+    <path d="M-28 8 a10 10 0 0 1 2 -19 a13 13 0 0 1 25 -5 a11 11 0 0 1 20 6 a9 9 0 0 1 -2 18 z"/>
+  </g>`;
+}
+function mkCompass(x, y) {
+  return `<g opacity="0.85" aria-hidden="true">
+    <circle cx="${x}" cy="${y}" r="26" fill="none" stroke="#7a5230" stroke-width="2"/>
+    <circle cx="${x}" cy="${y}" r="21" fill="none" stroke="#7a5230" stroke-width="0.8" stroke-dasharray="2 4" opacity="0.6"/>
+    <polygon points="${x},${y - 19} ${x + 5},${y} ${x - 5},${y}" fill="#b5482a"/>
+    <polygon points="${x},${y + 19} ${x + 5},${y} ${x - 5},${y}" fill="#7a5230" opacity="0.55"/>
+    <circle cx="${x}" cy="${y}" r="2.6" fill="#8c5a18"/>
+    <text x="${x}" y="${y - 31}" text-anchor="middle" font-size="11" font-weight="700" fill="#7a5230" font-family="Georgia, serif">N</text>
+  </g>`;
+}
+
+const kartView = {
+  id: 'kart',
+  name: 'Eventyrkart',
+  subtitle: 'Følg reiseruten og finn byggeklossene til historien',
+  spinAllLabel: 'Tegn hele reisen',
+  drawDuration: () => 980,
+  ownResults: true,        // results live on the map, not in the chip banner
+
+  mount(container) {
+    clearInterval(this._shuffleTimer);
+    this._drawingCat = null;
+    this._justDrew = null;
+    container.className = 'kart-wrap';
+
+    const cats = activeBoard().categories;
+    this._pts = this._layoutStops(cats.length);
+    // The standing landmarks are no-fly zones for the hanging notes.
+    this._blockRects = this._pts.map(p => ({ x: p.x - 28, y: p.y - 64, w: 56, h: 60 }));
+    this._layoutNotes();
+
+    const scroll = document.createElement('div');
+    scroll.className = 'kart-scroll';
+    const sheet = document.createElement('div');
+    sheet.className = 'kart-sheet';
+    sheet.innerHTML = this._sheetMarkup(cats);
+    scroll.appendChild(sheet);
+    container.appendChild(scroll);
+
+    this._svg = sheet.querySelector('svg');
+    this._tagLayer = this._svg.querySelector('.tag-layer');
+
+    // The ink line is revealed with a dashoffset matching the journey's
+    // progress. Curve segments differ in length, so sample the path once and
+    // record the arc length at each stop — the ink then lands exactly on the
+    // reached stop instead of at an even fraction of the total.
+    const ink = this._svg.querySelector('.route-ink');
+    this._routeLen = ink.getTotalLength();
+    ink.style.strokeDasharray = `${this._routeLen}`;
+    ink.style.strokeDashoffset = `${this._routeLen}`;
+    const best = this._pts.map(() => Infinity);
+    this._stopLens = this._pts.map(() => 0);
+    if (this._routeLen > 0) {
+      const SAMPLES = 640;
+      for (let s = 0; s <= SAMPLES; s++) {
+        const len = (this._routeLen * s) / SAMPLES;
+        const q = ink.getPointAtLength(len);
+        this._pts.forEach((p, i) => {
+          const d2 = (q.x - p.x) ** 2 + (q.y - p.y) ** 2;
+          if (d2 < best[i]) { best[i] = d2; this._stopLens[i] = len; }
+        });
+      }
+    }
+
+    this._svg.querySelectorAll('.map-stop').forEach(g => {
+      const catId = g.dataset.cat;
+      const activate = () => {
+        if (spinning) return;
+        if (draws[catId]?.spun) { draws[catId].spun = false; updateResultBanner(); }
+        spinCategory(catId);
+      };
+      g.addEventListener('click', activate);
+      g.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(); }
+      });
+    });
+
+    const resetBtn = document.createElement('button');
+    resetBtn.className = 'kart-reset';
+    resetBtn.type = 'button';
+    resetBtn.textContent = 'Visk ut reisen';
+    resetBtn.addEventListener('click', resetAll);
+    container.appendChild(resetBtn);
+    this._resetBtn = resetBtn;
+
+    this._renderOverlay();
+  },
+
+  // Stops wander left→right between "destinations" across the book's spread:
+  // the height follows a random walk (climbs, dips and stretches on the same
+  // side), not a strict zigzag, so the route meanders like a real journey.
+  // The band keeps every landmark and its caption on the pages, and the tag
+  // layer resolves note collisions itself. Deterministic pseudo-random keeps
+  // the layout stable across renders.
+  _layoutStops(n) {
+    if (n === 1) return [{ x: KART_W / 2, y: KART_CY }];
+    const rnd = i => {
+      const s = Math.sin(i * 127.1 + 3.7) * 43758.5453;
+      return s - Math.floor(s);
+    };
+    const x0 = 170, x1 = 815;
+    const step = (x1 - x0) / (n - 1);
+    const yMin = 252, yMax = 448;
+    const pts = [];
+    let y = yMin + (yMax - yMin) * rnd(0.5);
+    for (let i = 0; i < n; i++) {
+      if (i > 0) {
+        let dy = (rnd(i) - 0.5) * 300;                       // wander up or down…
+        if (Math.abs(dy) < 55) dy = (dy < 0 ? -1 : 1) * (55 + rnd(i + 9) * 45); // …but keep moving
+        if (y + dy < yMin || y + dy > yMax) dy = -dy;        // bounce off the banks
+        y = Math.max(yMin, Math.min(yMax, y + dy));
+      }
+      const edge = i === 0 || i === n - 1;
+      const jx = edge ? 0 : (rnd(i + 50) - 0.5) * Math.min(24, step * 0.3);
+      pts.push({ x: x0 + i * step + jx, y });
+    }
+    return pts;
+  },
+
+  // Where each stage's note hangs, computed once for ALL stages so a note
+  // never moves when another is drawn. Every note is centred directly above
+  // its own landmark; only its altitude varies:
+  //  1. Notes start in R staggered rows (stage i in row i mod R) high in the
+  //     sky. R is the smallest row count that lets same-row notes sit side by
+  //     side without touching, so this start is overlap-free by construction.
+  //  2. Lowest rows first, each note sinks straight down toward its landmark
+  //     until it would touch another note or any landmark.
+  // The sky above the book grows (_skyTop) as far as the rows need.
+  _layoutNotes() {
+    const pts = this._pts, n = pts.length, h = 104, gap = 6;
+    const step = n > 1 ? (pts[n - 1].x - pts[0].x) / (n - 1) : KART_W;
+    const room = R => R * step - 24 - gap;   // 24 = worst-case sideways jitter of two stops
+    let R = 1;
+    while (R < 3 && room(R) < 120) R++;
+    const w = Math.round(Math.max(84, Math.min(150, room(R))));
+    const minTop = Math.min(...this._blockRects.map(r => r.y));
+    const T = Math.floor(minTop - gap - R * h - (R - 1) * gap);
+    const rects = pts.map((p, i) => ({ x: Math.round(p.x - w / 2), y: T + (i % R) * (h + gap), w, h }));
+    const touches = (a, b) =>
+      a.x < b.x + b.w + gap && b.x < a.x + a.w + gap &&
+      a.y < b.y + b.h + gap && b.y < a.y + a.h + gap;
+    pts.map((_, i) => i)
+      .sort((a, b) => (b % R) - (a % R) || a - b)
+      .forEach(i => {
+        const r = rects[i];
+        const floor = Math.round(pts[i].y - 60 - 16 - h);   // resting just above its plaque
+        while (r.y + 4 <= floor) {
+          const probe = { ...r, y: r.y + 4 };
+          if (rects.some((q, j) => j !== i && touches(probe, q))) break;
+          if (this._blockRects.some(q => touches(probe, q))) break;
+          r.y = probe.y;
+        }
+      });
+    this._noteW = w;
+    this._noteRects = rects;
+    this._skyTop = Math.min(0, Math.min(...rects.map(r => r.y)) - 8);
+  },
+
+  // Catmull-Rom through the stops, converted to cubic beziers → a flowing route.
+  _routeD(pts) {
+    if (pts.length === 1) return `M ${pts[0].x} ${pts[0].y}`;
+    let d = `M ${pts[0].x} ${pts[0].y}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+      const c1x = p1.x + (p2.x - p0.x) / 6, c1y = p1.y + (p2.y - p0.y) / 6;
+      const c2x = p2.x - (p3.x - p1.x) / 6, c2y = p2.y - (p3.y - p1.y) / 6;
+      d += ` C ${c1x.toFixed(1)} ${c1y.toFixed(1)}, ${c2x.toFixed(1)} ${c2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+    }
+    return d;
+  },
+
+  _sheetMarkup(cats) {
+    const pts = this._pts;
+    const route = this._routeD(pts);
+
+    // The scene: an open storybook on a desk, the journey mapped across its
+    // spread. Landmarks stand up from the pages like a pop-up book.
+    const SPREAD = 'M500 152 C 440 142, 330 144, 147 166 L 134 486 C 320 468, 450 476, 500 512 C 550 476, 680 468, 866 486 L 853 166 C 670 144, 560 142, 500 152 Z';
+    const COVER  = 'M500 144 C 434 132, 320 134, 131 156 L 116 497 C 314 479, 448 487, 500 527 C 552 487, 686 479, 884 497 L 869 156 C 680 134, 566 132, 500 144 Z';
+
+    // Decor goes where the route leaves room: mountains along the pages' top
+    // edge at the x of LOW stops, woods along the bottom at the x of HIGH
+    // stops; clouds and birds fill the sky above the book.
+    let deco = '';
+    const mtns = pts.filter(p => p.y > 380 && p.x > 200 && p.x < 800).slice(0, 3);
+    mtns.forEach(p => { deco += mkMountains(p.x, 202); });
+    pts.filter(p => p.y < 300 && p.x > 210 && p.x < 790).slice(0, 3)
+      .forEach(p => { deco += mkForest(p.x, 464); });
+
+    // The pop-up landmarks: the category's icon on a standing plaque with a
+    // foot, ground shadow, number badge and the stage name beneath.
+    const stops = cats.map((cat, i) => {
+      const p = pts[i];
+      return `<g class="map-stop" data-cat="${cat.id}" role="button" tabindex="0" aria-label="Trekk: ${esc(cat.label)}">
+        <ellipse class="stop-shadow" cx="${p.x}" cy="${p.y + 3}" rx="20" ry="5.5"/>
+        <rect x="${p.x - 30}" y="${p.y - 66}" width="60" height="76" fill="transparent"/>
+        <circle class="stop-ring" cx="${p.x}" cy="${p.y - 33}" r="36"/>
+        <g class="stop-core">
+          <path class="stop-foot" d="M ${p.x - 8} ${p.y - 11} h16 l-4.5 11 h-7 z"/>
+          <rect class="stop-plaque" x="${p.x - 24}" y="${p.y - 58}" width="48" height="48" rx="10"/>
+          <g class="stop-icon" transform="translate(${p.x - 17} ${p.y - 51}) scale(1.417)" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${catIconInner(cat.id, i, 'currentColor')}</g>
+          <circle class="stop-num-c" cx="${p.x - 22}" cy="${p.y - 14}" r="10"/>
+          <text class="stop-num" x="${p.x - 22}" y="${p.y - 9.8}" text-anchor="middle">${i + 1}</text>
+        </g>
+        <text class="stop-name" x="${p.x}" y="${p.y + 22}" text-anchor="middle">${esc(cat.label)}</text>
+      </g>`;
+    }).join('');
+
+    // Goal flag planted just past the final landmark.
+    const last = pts[pts.length - 1];
+    const flagX = Math.min(last.x + 36, 838);
+    const flag = cats.length > 1
+      ? `<g aria-hidden="true">
+           <ellipse cx="${flagX}" cy="${last.y + 2}" rx="6" ry="2.4" fill="rgba(90,60,20,0.16)"/>
+           <line x1="${flagX}" y1="${last.y}" x2="${flagX}" y2="${last.y - 40}" stroke="#7a5230" stroke-width="2"/>
+           <path d="M ${flagX} ${last.y - 40} l 18 5.5 l -18 5.5 Z" fill="#b5482a"/>
+         </g>` : '';
+
+    const sky = this._skyTop || 0;
+    return `<svg viewBox="0 ${sky} ${KART_W} ${KART_H - sky}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Reisekart i en åpen bok">
+      <defs>
+        <filter id="wc-wobble" x="-25%" y="-25%" width="150%" height="150%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.012 0.02" numOctaves="3" seed="7" result="noise"/>
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="16"/>
+        </filter>
+        <filter id="wc-paper" x="0" y="0" width="100%" height="100%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="3"/>
+          <feColorMatrix type="matrix" values="0 0 0 0 0.42  0 0 0 0 0.33  0 0 0 0 0.16  0 0 0 0.13 0"/>
+        </filter>
+        <linearGradient id="spine-shade" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#7a5a2e" stop-opacity="0"/>
+          <stop offset="0.5" stop-color="#7a5a2e" stop-opacity="0.22"/>
+          <stop offset="1" stop-color="#7a5a2e" stop-opacity="0"/>
+        </linearGradient>
+        <clipPath id="spread-clip"><path d="${SPREAD}"/></clipPath>
+      </defs>
+
+      <rect y="${sky}" width="${KART_W}" height="${KART_H - sky}" fill="#e6d8b0"/>
+      ${mkCloud(165, 66, 1)}${mkCloud(520, 46, 0.72)}${mkCloud(845, 76, 1.1)}${mkBirds(680, 70)}
+
+      <path d="${COVER}" fill="#7c5230" stroke="#5e3d20" stroke-width="2"/>
+      <path d="M138 491 C 322 473, 452 481, 500 517 C 548 481, 678 473, 862 491" fill="none" stroke="#d8c69b" stroke-width="1.6"/>
+      <path d="M141 497 C 324 479, 450 487, 500 522 C 550 487, 676 479, 859 497" fill="none" stroke="#c9b78c" stroke-width="1.4"/>
+      <path d="M512 514 L512 560 L524 551 L536 562 L536 516 C 528 511, 520 511, 512 514 Z" fill="#b5482a" stroke="#7c2d18" stroke-width="1.5" stroke-linejoin="round"/>
+      <path d="${SPREAD}" fill="#f6eed6" stroke="#b99a63" stroke-width="1.5"/>
+      <g clip-path="url(#spread-clip)">
+        <g filter="url(#wc-wobble)">
+          <path d="M175 205 C 300 188, 430 194, 478 214 C 486 300, 484 400, 468 470 C 340 480, 210 474, 162 458 C 150 370, 156 268, 175 205 Z"
+                fill="#dce6bf" opacity="0.5" stroke="#a4b183" stroke-width="1.2"/>
+          <path d="M525 214 C 572 194, 700 188, 826 206 C 846 268, 850 372, 838 458 C 790 476, 660 480, 532 470 C 516 400, 514 300, 525 214 Z"
+                fill="#dce6bf" opacity="0.5" stroke="#a4b183" stroke-width="1.2"/>
+          <path d="M240 260 C 400 238, 620 240, 770 268 C 786 330, 782 392, 768 430 C 600 452, 380 450, 228 428 C 216 372, 222 306, 240 260 Z"
+                fill="#cfdcae" opacity="0.32"/>
+        </g>
+        <rect width="${KART_W}" height="${KART_H}" filter="url(#wc-paper)"/>
+        <rect x="458" y="145" width="84" height="372" fill="url(#spine-shade)"/>
+      </g>
+
+      ${deco}
+      <path class="route-base" d="${route}"/>
+      <path class="route-ink" d="${route}"/>
+      ${mkCompass(935, 585)}
+      <g class="stop-layer">${stops}${flag}</g>
+      <g class="tag-layer"></g>
+    </svg>`;
+  },
+
+  _renderOverlay() {
+    if (!this._svg) return;
+    const cats = activeBoard().categories;
+
+    // Ink the route as far as the journey is complete from the start — using
+    // the sampled arc length of the last contiguously reached stop, so the
+    // line ends exactly at its circle.
+    let k = 0;
+    while (k < cats.length && draws[cats[k].id]?.spun) k++;
+    const inkLen = k > 0 ? (this._stopLens?.[k - 1] ?? this._routeLen) : 0;
+    const ink = this._svg.querySelector('.route-ink');
+    if (ink) ink.style.strokeDashoffset = `${this._routeLen - inkLen}`;
+
+    let nextFound = false;
+    cats.forEach(cat => {
+      const g = this._svg.querySelector(`.map-stop[data-cat="${cat.id}"]`);
+      if (!g) return;
+      const spun = !!draws[cat.id]?.spun;
+      const drawingNow = this._drawingCat === cat.id;
+      g.classList.toggle('visited', spun);
+      g.classList.toggle('drawing', drawingNow);
+      const isNext = !spun && !drawingNow && !nextFound;
+      if (isNext) nextFound = true;
+      g.classList.toggle('next', isNext);
+    });
+
+    if (this._resetBtn) {
+      this._resetBtn.style.display = cats.some(c => draws[c.id]?.spun) ? '' : 'none';
+    }
+    this._renderTags();
+  },
+
+  _renderTags() {
+    if (!this._tagLayer || !this._noteRects) return;
+    const cats = activeBoard().categories;
+    const w = this._noteW, h = 104;
+    const active = cats
+      .map((cat, i) => ({ cat, i, p: this._pts[i], rect: this._noteRects[i] }))
+      .filter(a => a.p && a.rect && (draws[a.cat.id]?.spun || this._drawingCat === a.cat.id));
+
+    // Strings first, so every note hangs in front of the strings around it.
+    let strings = '';
+    let notes = '';
+    active.forEach(({ cat, i, p, rect }) => {
+      const drawingNow = this._drawingCat === cat.id;
+      const cx = rect.x + w / 2;
+      const rot = ((i % 3) - 1) * 2;
+      const value = drawingNow ? '…' : esc(cat.items[draws[cat.id].index]);
+      const cls = 'tag-card'
+        + (drawingNow ? ' drawing' : '')
+        + (!drawingNow && cat.id === this._justDrew ? ' pop' : '');
+      // the string the note hangs by, straight down to its landmark's top
+      strings += `<line x1="${cx}" y1="${rect.y + h - 2}" x2="${p.x}" y2="${p.y - 60}" stroke="#7a5230" stroke-width="1.4" stroke-dasharray="3 4" opacity="0.55"/>`;
+      notes += `<foreignObject class="map-tag-fo" x="${rect.x}" y="${rect.y}" width="${w}" height="${h}" transform="rotate(${rot} ${cx} ${rect.y + h})">
+        <div class="map-tag above" xmlns="http://www.w3.org/1999/xhtml" style="--fd:${(i % 4) * 0.6}s">
+          <div class="${cls}" data-cat="${cat.id}" title="Klikk for å trekke på nytt">
+            <div class="tag-value">${value}</div>
+          </div>
+        </div>
+      </foreignObject>`;
+    });
+    const html = strings + notes;
+    this._tagLayer.innerHTML = html;
+    this._justDrew = null;
+
+    this._tagLayer.querySelectorAll('.tag-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const catId = card.dataset.cat;
+        if (spinning) return;
+        if (draws[catId]?.spun) { draws[catId].spun = false; updateResultBanner(); }
+        spinCategory(catId);
+      });
+    });
+  },
+
+  reset() { this._renderOverlay(); },
+
+  // Engine result hook: the map's tags and inked route ARE the result display.
+  renderResults() { this._renderOverlay(); },
+
+  // A draw: the stop gets a spinning dashed ring while the tag shuffles through
+  // options; the engine commits the value and renderResults settles the tag.
+  spin(catId, from, to, done) {
+    clearInterval(this._shuffleTimer);
+    this._drawingCat = catId;
+    this._renderOverlay();
+
+    const items = boardCat(catId).items;
+    const valEl = this._tagLayer.querySelector(`.tag-card[data-cat="${catId}"] .tag-value`);
+    let last = -1;
+    this._shuffleTimer = setInterval(() => {
+      let r;
+      do { r = Math.floor(Math.random() * items.length); } while (r === last && items.length > 1);
+      last = r;
+      if (valEl) valEl.textContent = items[r];
+    }, 90);
+
+    setTimeout(() => {
+      clearInterval(this._shuffleTimer);
+      this._drawingCat = null;
+      this._justDrew = catId;
+      done();
+    }, 950);
+  },
+
+  setBusy(b) {
+    if (this._svg) this._svg.classList.toggle('busy', b);
+  },
+};
+
+// View registry — each version is a wrapper around the shared engine.
+const VIEWS = [hjulView, kortView, kartView];
+
+// ─── SPIN ALL ─────────────────────────────────────────────────────────────────
+document.getElementById('spin-all-btn').addEventListener('click', spinAll);
+
+// ─── RESULT BANNER (shared chrome) ────────────────────────────────────────────
+function updateResultBanner() {
+  const board = activeBoard();
+  const banner = document.getElementById('result-banner');
+  const shareRow = document.getElementById('share-row');
+  const view = activeView();
+  banner.innerHTML = '';
+  // Fresh results → collapse the split share button back to one circle
+  document.getElementById('share-pod').classList.remove('split');
+
+  const spunCats = board.categories.filter(cat => draws[cat.id]?.spun);
+
+  // A view may present results its own way (e.g. the card hand) instead of chips.
+  if (view.renderResults) view.renderResults(spunCats);
+
+  if (spunCats.length === 0) {
+    banner.classList.remove('show');
+    shareRow.classList.remove('show');
+    return;
+  }
+
+  if (view.ownResults) {
+    banner.classList.remove('show');
+  } else {
+    spunCats.forEach(cat => {
+      const idx = draws[cat.id].index;
+      const chip = document.createElement('div');
+      chip.className = 'result-chip';
+      chip.title = 'Klikk for å snurre på nytt';
+      chip.innerHTML = `
+        <span class="rc-label">${cat.label}</span>
+        <span class="rc-value">${cat.items[idx]}</span>
+        <span class="rc-respin">↻ snurr på nytt</span>`;
+      chip.addEventListener('click', () => {
+        if (spinning) return;
+        draws[cat.id].spun = false;
+        updateResultBanner();
+        spinCategory(cat.id);
+      });
+      banner.appendChild(chip);
+    });
+
+    const resetBtn = document.createElement('button');
+    resetBtn.className = 'banner-reset-btn';
+    resetBtn.textContent = 'Tilbakestill';
+    resetBtn.addEventListener('click', resetAll);
+    banner.appendChild(resetBtn);
+
+    banner.classList.add('show');
+  }
+
+  shareRow.classList.toggle('show', spunCats.length === board.categories.length);
+}
+
+// ─── SHARE / SAVE AS IMAGE ────────────────────────────────────────────────────
+// Each mode paints its own share image: the wheel's dark stage, the card
+// table's green felt, and the map's parchment itinerary.
+const SHARE_FONT = "'Segoe UI', system-ui, sans-serif";
+const SHARE_HAND_FONT = "'Bradley Hand', 'Segoe Print', 'Comic Sans MS', cursive";
+
+function makeShareCanvas(W, H, S = 2) {
+  const canvas = document.createElement('canvas');
+  canvas.width = W * S;
+  canvas.height = H * S;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(S, S);
+  return { canvas, ctx };
+}
+
+// Word-wrap: returns the drawn lines for a max width (greedy).
+function wrapLines(ctx, text, maxW) {
+  const words = String(text).split(/\s+/);
+  const lines = [];
+  let line = '';
+  words.forEach(w => {
+    const probe = line ? line + ' ' + w : w;
+    if (ctx.measureText(probe).width > maxW && line) { lines.push(line); line = w; }
+    else line = probe;
+  });
+  if (line) lines.push(line);
+  return lines;
+}
+
+function loadSvgImage(svg) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  });
+}
+
+const SHARE_PAINTERS = {
+  // «hjul»: the original dark stage with gold→accent title and slot rows.
+  async hjul(board, cats) {
+    const pal = (PALETTES.find(p => p.id === currentPalette) || PALETTES[0]).vars;
+    const W = 1200, pad = 90;
+    const rowH = 150, rowGap = 28, rowsTop = 210;
+    const H = rowsTop + cats.length * rowH + (cats.length - 1) * rowGap + 80;
+    const { canvas, ctx } = makeShareCanvas(W, H);
+
+    ctx.fillStyle = pal['--bg'];
+    ctx.fillRect(0, 0, W, H);
+    ctx.textAlign = 'center';
+
+    ctx.font = `800 70px ${SHARE_FONT}`;
+    const title = 'FORTELLERVERKSTED';
+    const tw = ctx.measureText(title).width;
+    const grad = ctx.createLinearGradient((W - tw) / 2, 0, (W + tw) / 2, 0);
+    grad.addColorStop(0, pal['--gold']);
+    grad.addColorStop(1, pal['--accent']);
+    ctx.fillStyle = grad;
+    ctx.fillText(title, W / 2, 130);
+
+    let y = rowsTop;
+    cats.forEach(cat => {
+      const value = cat.items[draws[cat.id].index];
+      ctx.fillStyle = pal['--card'];
+      ctx.strokeStyle = pal['--line'];
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(pad, y, W - pad * 2, rowH, 24);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.font = `800 26px ${SHARE_FONT}`;
+      ctx.fillStyle = pal['--gold'];
+      ctx.fillText(cat.label.toUpperCase(), W / 2, y + 56);
+
+      let size = 46;
+      ctx.font = `700 ${size}px ${SHARE_FONT}`;
+      const maxW = W - pad * 2 - 80;
+      while (ctx.measureText(value).width > maxW && size > 20) {
+        size -= 2;
+        ctx.font = `700 ${size}px ${SHARE_FONT}`;
+      }
+      ctx.fillStyle = pal['--text'];
+      ctx.fillText(value, W / 2, y + 116);
+
+      y += rowH + rowGap;
+    });
+    return canvas;
+  },
+
+  // «kort»: the hand laid out on green felt, three cards to a row.
+  async kort(board, cats) {
+    const W = 1200;
+    const cardW = 310, cardH = 434, gapX = 40, gapY = 52;
+    const perRow = 3;
+    const rows = Math.ceil(cats.length / perRow);
+    const top = 210;
+    const H = top + rows * cardH + (rows - 1) * gapY + 90;
+    const { canvas, ctx } = makeShareCanvas(W, H);
+
+    // felt with a soft vignette
+    ctx.fillStyle = '#1f4a3c';
+    ctx.fillRect(0, 0, W, H);
+    const vig = ctx.createRadialGradient(W / 2, H / 2, 120, W / 2, H / 2, Math.max(W, H) * 0.75);
+    vig.addColorStop(0, 'rgba(255,255,255,0.06)');
+    vig.addColorStop(1, 'rgba(0,0,0,0.28)');
+    ctx.fillStyle = vig;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.textAlign = 'center';
+    ctx.font = `800 66px ${SHARE_FONT}`;
+    ctx.fillStyle = '#f1ece0';
+    ctx.fillText('FORTELLERVERKSTED', W / 2, 120);
+
+    // pre-rasterise the category icons
+    const icons = await Promise.all(cats.map(cat => {
+      const gi = board.categories.indexOf(cat);
+      const color = DECK_COLORS[gi % DECK_COLORS.length];
+      return loadSvgImage(catIconSvg(cat.id, gi, color, 96));
+    }));
+
+    const rnd = i => Math.sin(i * 91.7 + 2.3) * 2.4;   // deterministic tilt, ±2.4°
+    cats.forEach((cat, i) => {
+      const gi = board.categories.indexOf(cat);
+      const color = DECK_COLORS[gi % DECK_COLORS.length];
+      const value = cat.items[draws[cat.id].index];
+      const row = Math.floor(i / perRow);
+      const inRow = Math.min(perRow, cats.length - row * perRow);
+      const rowW = inRow * cardW + (inRow - 1) * gapX;
+      const cx = (W - rowW) / 2 + (i % perRow) * (cardW + gapX) + cardW / 2;
+      const cy = top + row * (cardH + gapY) + cardH / 2;
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate((rnd(i) * Math.PI) / 180);
+
+      ctx.shadowColor = 'rgba(0,0,0,0.4)';
+      ctx.shadowBlur = 26;
+      ctx.shadowOffsetY = 12;
+      ctx.fillStyle = '#f7f0e1';
+      ctx.beginPath();
+      ctx.roundRect(-cardW / 2, -cardH / 2, cardW, cardH, 22);
+      ctx.fill();
+      ctx.shadowColor = 'transparent';
+
+      ctx.strokeStyle = color + '66';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.roundRect(-cardW / 2 + 15, -cardH / 2 + 15, cardW - 30, cardH - 30, 13);
+      ctx.stroke();
+
+      ctx.drawImage(icons[i], -48, -cardH / 2 + 52, 96, 96);
+
+      ctx.font = `800 21px ${SHARE_FONT}`;
+      ctx.fillStyle = color;
+      wrapLines(ctx, cat.label.toUpperCase(), cardW - 70).forEach((ln, li) => {
+        ctx.fillText(ln, 0, -cardH / 2 + 190 + li * 26);
+      });
+
+      ctx.font = `700 30px ${SHARE_FONT}`;
+      ctx.fillStyle = '#2a2a30';
+      const lines = wrapLines(ctx, value, cardW - 64).slice(0, 5);
+      const lh = 38;
+      const startY = 46 - ((lines.length - 1) * lh) / 2;
+      lines.forEach((ln, li) => ctx.fillText(ln, 0, startY + li * lh));
+
+      ctx.restore();
+    });
+    return canvas;
+  },
+
+  // «kart»: a parchment itinerary — dotted route wandering between numbered
+  // stops down the page, values in handwriting.
+  async kart(board, cats) {
+    const W = 1200;
+    const stepY = 168, top = 300;
+    const H = top + (cats.length - 1) * stepY + 210;
+    const { canvas, ctx } = makeShareCanvas(W, H);
+
+    ctx.fillStyle = '#f2e9ce';
+    ctx.fillRect(0, 0, W, H);
+    // paper speckle
+    const rnd = i => { const s = Math.sin(i * 127.1 + 1.3) * 43758.5453; return s - Math.floor(s); };
+    ctx.fillStyle = 'rgba(122,90,40,0.07)';
+    for (let i = 0; i < 420; i++) {
+      ctx.fillRect(rnd(i) * W, rnd(i + 1000) * H, 2.2, 2.2);
+    }
+    // double map frame
+    ctx.strokeStyle = '#8a6b3c';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(26, 26, W - 52, H - 52);
+    ctx.strokeStyle = '#b99a63';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(38, 38, W - 76, H - 76);
+
+    ctx.textAlign = 'center';
+    ctx.font = `800 62px Georgia, 'Times New Roman', serif`;
+    ctx.fillStyle = '#96611c';
+    ctx.fillText('FORTELLERVERKSTED', W / 2, 128);
+    ctx.font = `700 30px Georgia, serif`;
+    ctx.fillStyle = '#85704a';
+    ctx.fillText('~ reiseruten til historien min ~', W / 2, 178);
+
+    // wandering stop positions and the dotted route through them
+    const pts = cats.map((_, i) => ({
+      x: i % 2 === 0 ? 250 + rnd(i + 7) * 90 : 890 + rnd(i + 7) * 60,
+      y: top + i * stepY,
+    }));
+    if (pts.length > 1) {
+      const d = kartView._routeD(pts);
+      ctx.strokeStyle = '#8b4a2f';
+      ctx.lineWidth = 5;
+      ctx.lineCap = 'round';
+      ctx.setLineDash([1, 17]);
+      ctx.stroke(new Path2D(d));
+      ctx.setLineDash([]);
+    }
+
+    cats.forEach((cat, i) => {
+      const p = pts[i];
+      const value = cat.items[draws[cat.id].index];
+      const leftSide = p.x < W / 2;
+
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 30, 0, Math.PI * 2);
+      ctx.fillStyle = '#b5482a';
+      ctx.fill();
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = '#7c2d18';
+      ctx.stroke();
+      ctx.font = `700 28px Georgia, serif`;
+      ctx.fillStyle = '#fdf3e0';
+      ctx.fillText(String(i + 1), p.x, p.y + 10);
+
+      const tx = leftSide ? p.x + 62 : p.x - 62;
+      ctx.textAlign = leftSide ? 'left' : 'right';
+      ctx.font = `700 23px Georgia, serif`;
+      ctx.fillStyle = '#6b5124';
+      ctx.fillText(cat.label.toUpperCase(), tx, p.y - 16);
+      ctx.font = `700 33px ${SHARE_HAND_FONT}`;
+      ctx.fillStyle = '#46331a';
+      wrapLines(ctx, value, 520).slice(0, 3).forEach((ln, li) => {
+        ctx.fillText(ln, tx, p.y + 22 + li * 40);
+      });
+      ctx.textAlign = 'center';
+    });
+
+    // small compass rose, bottom-right corner
+    const cx = W - 110, cy = H - 110;
+    ctx.strokeStyle = '#7a5230';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(cx, cy, 34, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - 25); ctx.lineTo(cx + 7, cy); ctx.lineTo(cx - 7, cy); ctx.closePath();
+    ctx.fillStyle = '#b5482a'; ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(cx, cy + 25); ctx.lineTo(cx + 7, cy); ctx.lineTo(cx - 7, cy); ctx.closePath();
+    ctx.fillStyle = 'rgba(122,82,48,0.55)'; ctx.fill();
+    ctx.font = `700 20px Georgia, serif`;
+    ctx.fillStyle = '#7a5230';
+    ctx.fillText('N', cx, cy - 44);
+
+    return canvas;
+  },
+};
+
+async function buildResultImage() {
+  const board = activeBoard();
+  const cats = board.categories.filter(c => draws[c.id]?.spun);
+  if (cats.length === 0) return null;
+  const painter = SHARE_PAINTERS[currentView] || SHARE_PAINTERS.hjul;
+  return painter(board, cats);
+}
+
+function downloadBlob(blob) {
+  const a = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  a.href = url;
+  a.download = 'fortellerverksted-byggeklosser.png';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+  showToast('Bildet er lagret');
+}
+
+const sharePod = document.getElementById('share-pod');
+
+document.getElementById('share-open-btn').addEventListener('click', () => {
+  sharePod.classList.add('split');
+});
+
+document.getElementById('share-image-btn').addEventListener('click', async () => {
+  const canvas = await buildResultImage();
+  if (!canvas) return;
+  canvas.toBlob(async blob => {
+    if (!blob) return;
+    const file = new File([blob], 'fortellerverksted-byggeklosser.png', { type: 'image/png' });
+    // Use the native share sheet where available (mobile/tablet), otherwise download
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: 'Fortellerverksted' });
+        return;
+      } catch (e) {
+        if (e.name === 'AbortError') return; // user cancelled the share sheet
+      }
+    }
+    downloadBlob(blob);
+  }, 'image/png');
+});
+
+function lcFirst(s) { return s ? s.charAt(0).toLowerCase() + s.slice(1) : s; }
+function ucFirst(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+
+function buildResultText() {
+  const board = activeBoard();
+
+  // «Heltens reise»-boards share as a numbered itinerary instead of the sentence
+  // template (the stage order IS the story skeleton).
+  if (board.categories.some(c => c.id.startsWith('hj_'))) {
+    const lines = board.categories
+      .map((c, i) => draws[c.id]?.spun ? `${i + 1}. ${c.label}: ${c.items[draws[c.id].index]}` : null)
+      .filter(Boolean);
+    return lines.length ? 'Heltens reise – mine byggeklosser:\n' + lines.join('\n') : null;
+  }
+
+  const get = id => {
+    const cat = board.categories.find(c => c.id === id);
+    return cat && draws[cat.id]?.spun ? cat.items[draws[cat.id].index] : null;
+  };
+  const person = get('person');
+  const type = get('type');
+  const sted = get('sted');
+  const ting = get('ting');
+  const tid = get('tid');
+
+  // "på skolen", "på en båt" — men "i skogen", "i en grotte" osv.
+  const stedFrase = s => {
+    const l = lcFirst(s);
+    const paaSteder = ['skolen', 'en båt'];
+    return (paaSteder.includes(l.toLowerCase()) ? 'på ' : 'i ') + l;
+  };
+
+  const parts = [];
+  if (person) parts.push(`Historien min skal handle om ${lcFirst(person)}.`);
+  if (type) {
+    const t = lcFirst(type);
+    const typeFrase = t.toLowerCase() === 'eventyr' ? 'et eventyr' : `en ${t}-historie`;
+    parts.push(sted
+      ? `Den skal være ${typeFrase}, og den skal foregå ${stedFrase(sted)}.`
+      : `Den skal være ${typeFrase}.`);
+  } else if (sted) {
+    parts.push(`Den skal foregå ${stedFrase(sted)}.`);
+  }
+  if (ting) {
+    parts.push(tid
+      ? `${ucFirst(ting)} må dukke opp et eller annet sted i historien, og handlingen skal skje ${lcFirst(tid)}.`
+      : `${ucFirst(ting)} må dukke opp et eller annet sted i historien.`);
+  } else if (tid) {
+    parts.push(`Handlingen skal skje ${lcFirst(tid)}.`);
+  }
+
+  // Egendefinerte kategorier utenfor standardmalen listes under
+  const standard = ['person', 'type', 'sted', 'ting', 'tid'];
+  const extra = board.categories
+    .filter(c => !standard.includes(c.id) && draws[c.id]?.spun)
+    .map(c => `${c.label}: ${c.items[draws[c.id].index]}`);
+
+  if (parts.length === 0 && extra.length === 0) return null;
+  let text = 'Mine byggeklosser:';
+  if (parts.length) text += '\n' + parts.join(' ');
+  if (extra.length) text += '\n' + extra.join('\n');
+  return text;
+}
+
+document.getElementById('share-text-btn').addEventListener('click', async () => {
+  const text = buildResultText();
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('Teksten er kopiert');
+  } catch (e) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e2) {}
+    ta.remove();
+    showToast(ok ? 'Teksten er kopiert' : 'Kunne ikke kopiere teksten');
+  }
+});
+
+// ─── TOOL PANEL ───────────────────────────────────────────────────────────────
+const toolPanel = document.getElementById('tool-panel');
+const toolToggle = document.getElementById('tool-toggle');
+toolToggle.addEventListener('click', () => {
+  const open = toolPanel.classList.toggle('open');
+  toolToggle.classList.toggle('open', open);
+  if (open) renderToolPanel();
+});
+
+// Tabs: «Byggeklosser» / «Utseende»
+function setToolTab(id) {
+  document.querySelectorAll('.tp-tab').forEach(tab => {
+    const on = tab.dataset.tab === id;
+    tab.classList.toggle('active', on);
+    tab.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+  document.querySelectorAll('.tp-tabpanel').forEach(panel => {
+    panel.hidden = panel.dataset.panel !== id;
+  });
+}
+document.querySelectorAll('.tp-tab').forEach(tab => {
+  tab.addEventListener('click', () => setToolTab(tab.dataset.tab));
+});
+
+function renderToolPanel() {
+  renderBoardList();
+  renderCatEditor();
+  renderPaletteList();
+}
+
+// ─── VERSION CHOOSER ──────────────────────────────────────────────────────────
+// Catalog of versions shown in the chooser. A version is selectable once a matching
+// view exists in VIEWS; otherwise it shows as «Kommer snart».
+// Each version carries its own signature colours so its chooser panel shows the
+// version's identity (navy / green felt / papyrus), independent of the live palette.
+const VERSIONS = [
+  { id: 'hjul', name: 'Lykkehjul',   tagline: 'Snurr deg fram', bg: '#1a1a2e', fg: '#e8e8ef', gold: '#f5a623', red: '#e94560', onGold: '#1a1a2e' },
+  { id: 'kort', name: 'Spillkort',   tagline: 'Trekk fem kort', bg: '#1f4a3c', fg: '#f1ece0', gold: '#e7c25a', red: '#d65b48', onGold: '#143026' },
+  { id: 'kart', name: 'Eventyrkart', tagline: 'Heltens reise steg for steg', bg: '#ece0bd', fg: '#46330f', gold: '#b07d2a', red: '#b5482a', onGold: '#fbf3dd' },
+];
+
+// One small, self-contained emblem per version, drawn in that version's colours.
+function emblemMarkup(ver) {
+  const { gold, red, fg } = ver;
+  if (ver.id === 'kort') return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><g transform="rotate(-15 40 48)"><rect x="27" y="26" width="22" height="32" rx="4" fill="${fg}" stroke="${gold}" stroke-width="1.5"/></g><g transform="rotate(15 40 48)"><rect x="31" y="26" width="22" height="32" rx="4" fill="${fg}" stroke="${gold}" stroke-width="1.5"/></g><rect x="29" y="21" width="22" height="33" rx="4" fill="${fg}" stroke="${gold}" stroke-width="2"/><text x="40" y="43" text-anchor="middle" font-size="16" fill="${red}" font-family="system-ui, sans-serif">♥</text></svg>`;
+  if (ver.id === 'kart') return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><circle cx="40" cy="42" r="25" fill="none" stroke="${fg}" stroke-width="2.5"/><circle cx="40" cy="42" r="20" fill="none" stroke="${fg}" stroke-width="1" stroke-dasharray="2 4" opacity="0.45"/><polygon points="40,22 45.5,42 40,42" fill="${red}"/><polygon points="40,22 34.5,42 40,42" fill="${red}" opacity="0.72"/><polygon points="40,62 45.5,42 40,42" fill="${fg}" opacity="0.5"/><polygon points="40,62 34.5,42 40,42" fill="${fg}" opacity="0.3"/><circle cx="40" cy="42" r="3" fill="${gold}"/><text x="40" y="15" text-anchor="middle" font-size="9" font-weight="700" fill="${fg}" font-family="system-ui, sans-serif">N</text></svg>`;
+  return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><circle cx="40" cy="43" r="25" fill="none" stroke="${gold}" stroke-width="3"/><g stroke="${gold}" stroke-width="2" opacity="0.5"><line x1="40" y1="18" x2="40" y2="68"/><line x1="15" y1="43" x2="65" y2="43"/><line x1="22" y1="25" x2="58" y2="61"/><line x1="58" y1="25" x2="22" y2="61"/></g><circle cx="40" cy="43" r="4.5" fill="${red}"/><polygon points="40,11 34,22 46,22" fill="${red}"/></svg>`;
+}
+
+const chooserEl = document.getElementById('chooser');
+(() => {
+  const foot = document.getElementById('site-footer').cloneNode(true);
+  foot.removeAttribute('id');
+  foot.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+  document.getElementById('chooser-foot').appendChild(foot);
+})();
+const chooserRow = document.getElementById('chooser-row');
+
+function renderChooser() {
+  chooserRow.innerHTML = '';
+  VERSIONS.forEach(ver => {
+    const available = VIEWS.some(v => v.id === ver.id);
+    const isCurrent = ver.id === currentView;
+    const panel = document.createElement('button');
+    panel.type = 'button';
+    panel.className = 'chooser-panel' + (available ? '' : ' soon') + (isCurrent ? ' current' : '');
+    panel.dataset.version = ver.id;
+    panel.disabled = !available;
+    panel.style.background = ver.bg;
+    panel.style.color = ver.fg;
+    const foot = !available
+      ? `<div class="panel-badge" style="color:${ver.gold};border-color:${ver.gold}">Kommer snart</div>`
+      : (isCurrent
+          ? `<div class="panel-badge" style="color:${ver.fg};border-color:${ver.fg}">I bruk nå</div>`
+          : `<div class="panel-cta" style="background:${ver.gold};color:${ver.onGold}">Velg</div>`);
+    panel.innerHTML =
+      `<div class="panel-content">` +
+      `<div class="panel-emblem">${emblemMarkup(ver)}</div>` +
+      `<div class="panel-name">${ver.name}</div>` +
+      `<div class="panel-tagline">${ver.tagline}</div>${foot}</div>`;
+    if (available) panel.addEventListener('click', () => chooseVersion(ver.id));
+    chooserRow.appendChild(panel);
+  });
+}
+
+function openChooser() {
+  renderChooser();
+  chooserEl.classList.toggle('dismissable', hasChosen);
+  chooserEl.classList.remove('choosing');
+  chooserEl.style.opacity = '';
+  chooserEl.hidden = false;
+  toolPanel.classList.remove('open');
+  toolToggle.classList.remove('open');
+}
+
+function closeChooser() {
+  chooserEl.style.opacity = '0';
+  setTimeout(() => {
+    chooserEl.hidden = true;
+    chooserEl.style.opacity = '';
+    chooserEl.classList.remove('choosing');
+  }, 320);
+}
+
+function chooseVersion(id) {
+  const panels = [...chooserRow.children];
+  const idx = panels.findIndex(p => p.dataset.version === id);
+  if (idx < 0) return;
+  panels.forEach((p, i) => {
+    if (i < idx) p.classList.add('exit-left');
+    else if (i > idx) p.classList.add('exit-right');
+    else p.classList.add('chosen');
+  });
+  chooserEl.classList.add('choosing');
+
+  setTimeout(() => {
+    const changed = currentView !== id;
+    currentView = id;
+    hasChosen = true;
+    // The Eventyrkart is the Heltens reise mode: entering it brings its board
+    // along (the user can still switch boards freely in the tool panel).
+    if (changed && id === 'kart') {
+      const hj = boards.find(b => b.id === HJ_BOARD.id);
+      if (hj && activeBoardId !== hj.id) {
+        activeBoardId = hj.id;
+        updateBoardNameDisplay();
+        showToast('Byttet til settet «Heltens reise»');
+      }
+    }
+    saveState();
+    if (changed) remountView();
+    closeChooser();
+    cueGear();
+  }, 600);
+}
+
+// Subtle attention cue: gear spins a couple of turns, then settles.
+function cueGear() {
+  toolToggle.classList.add('cue');
+  toolToggle.addEventListener('animationend', () => toolToggle.classList.remove('cue'), { once: true });
+}
+
+document.getElementById('home-btn').addEventListener('click', openChooser);
+document.getElementById('chooser-close').addEventListener('click', closeChooser);
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !chooserEl.hidden && hasChosen) closeChooser();
+});
+
+function renderBoardList() {
+  const list = document.getElementById('board-list');
+  list.innerHTML = '';
+  boards.forEach(board => {
+    const item = document.createElement('div');
+    item.className = 'board-item' + (board.id === activeBoardId ? ' active' : '');
+
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'board-item-name';
+    nameSpan.textContent = board.name;
+
+    item.appendChild(nameSpan);
+
+    if (boards.length > 1) {
+      const del = document.createElement('button');
+      del.className = 'board-item-del';
+      del.textContent = '✕';
+      del.title = 'Slett sett';
+      let disarmTimer;
+      del.addEventListener('click', e => {
+        e.stopPropagation();
+        if (del.classList.contains('armed')) {
+          clearTimeout(disarmTimer);
+          deleteBoard(board.id);
+        } else {
+          del.classList.add('armed');
+          del.textContent = 'Slett?';
+          disarmTimer = setTimeout(() => {
+            del.classList.remove('armed');
+            del.textContent = '✕';
+          }, 2500);
+        }
+      });
+      item.appendChild(del);
+    }
+
+    item.addEventListener('click', () => loadBoard(board.id));
+    list.appendChild(item);
+  });
+}
+
+function renderCatEditor() {
+  const editor = document.getElementById('cat-editor');
+  editor.innerHTML = '';
+  const board = activeBoard();
+
+  board.categories.forEach(cat => {
+    const label = document.createElement('div');
+    label.className = 'cat-editor-label';
+    const labelText = document.createElement('span');
+    labelText.textContent = cat.label;
+    label.appendChild(labelText);
+
+    // Delete the whole category — same armed two-step pattern as board deletion
+    if (board.categories.length > 1) {
+      const catDel = document.createElement('button');
+      catDel.className = 'cat-del';
+      catDel.type = 'button';
+      catDel.textContent = '✕';
+      catDel.title = 'Fjern kategorien';
+      let disarm;
+      catDel.addEventListener('click', () => {
+        if (catDel.classList.contains('armed')) {
+          clearTimeout(disarm);
+          board.categories = board.categories.filter(c => c !== cat);
+          saveState();
+          remountView();
+          renderToolPanel();
+          showToast(`Kategorien "${cat.label}" er fjernet`);
+        } else {
+          catDel.classList.add('armed');
+          catDel.textContent = 'Fjern?';
+          disarm = setTimeout(() => {
+            catDel.classList.remove('armed');
+            catDel.textContent = '✕';
+          }, 2500);
+        }
+      });
+      label.appendChild(catDel);
+    }
+    editor.appendChild(label);
+
+    const tagList = document.createElement('div');
+    tagList.className = 'criteria-tag-list';
+    cat.items.forEach((item, idx) => {
+      const tag = document.createElement('div');
+      tag.className = 'criteria-tag';
+      tag.innerHTML = `<span>${item}</span>`;
+      const del = document.createElement('button');
+      del.textContent = '✕';
+      del.title = 'Fjern';
+      del.addEventListener('click', () => {
+        if (cat.items.length <= 1) { showToast('Minst ett alternativ kreves'); return; }
+        cat.items.splice(idx, 1);
+        if (draws[cat.id]) { draws[cat.id].index = 0; draws[cat.id].spun = false; }
+        saveState();
+        activeView().reset(cat.id, 0);
+        renderCatEditor();
+        updateResultBanner();
+      });
+      tag.appendChild(del);
+      tagList.appendChild(tag);
+    });
+    editor.appendChild(tagList);
+
+    const addRow = document.createElement('div');
+    addRow.className = 'add-row';
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.placeholder = 'Legg til alternativ…';
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') addItem(); });
+    const addBtn = document.createElement('button');
+    addBtn.textContent = '+ Legg til';
+    function addItem() {
+      const val = inp.value.trim();
+      if (!val) return;
+      cat.items.push(val);
+      inp.value = '';
+      saveState();
+      activeView().reset(cat.id, draws[cat.id]?.index || 0);
+      renderCatEditor();
+    }
+    addBtn.addEventListener('click', addItem);
+    addRow.appendChild(inp);
+    addRow.appendChild(addBtn);
+    editor.appendChild(addRow);
+  });
+
+  // Add new category
+  const divider = document.createElement('div');
+  divider.className = 'tp-divider';
+  divider.style.marginTop = '8px';
+  editor.appendChild(divider);
+
+  const newCatLabel = document.createElement('div');
+  newCatLabel.className = 'cat-editor-label';
+  newCatLabel.style.marginTop = '8px';
+  newCatLabel.textContent = 'Ny kategori';
+  editor.appendChild(newCatLabel);
+
+  const newCatRow = document.createElement('div');
+  newCatRow.className = 'add-row';
+  const newCatInp = document.createElement('input');
+  newCatInp.type = 'text';
+  newCatInp.placeholder = 'Kategorinavn…';
+  newCatInp.addEventListener('keydown', e => { if (e.key === 'Enter') addCat(); });
+  const newCatBtn = document.createElement('button');
+  newCatBtn.textContent = '+ Ny';
+  function addCat() {
+    const val = newCatInp.value.trim();
+    if (!val) return;
+    const id = 'cat_' + Date.now();
+    board.categories.push({ id, label: val, items: ['Alternativ 1'] });
+    newCatInp.value = '';
+    saveState();
+    remountView();
+    renderToolPanel();
+  }
+  newCatBtn.addEventListener('click', addCat);
+  newCatRow.appendChild(newCatInp);
+  newCatRow.appendChild(newCatBtn);
+  editor.appendChild(newCatRow);
+}
+
+// ─── BOARD MANAGEMENT ─────────────────────────────────────────────────────────
+document.getElementById('save-board-btn').addEventListener('click', () => {
+  const nameInput = document.getElementById('board-name-input');
+  const name = nameInput.value.trim();
+  if (!name) { showToast('Skriv inn et navn på settet'); return; }
+
+  const current = activeBoard();
+  // Deep-clone categories
+  const newBoard = {
+    id: 'board_' + Date.now(),
+    name,
+    categories: JSON.parse(JSON.stringify(current.categories)),
+  };
+  boards.push(newBoard);
+  activeBoardId = newBoard.id;
+  nameInput.value = '';
+  saveState();
+  remountView();
+  updateBoardNameDisplay();
+  renderToolPanel();
+  showToast(`Settet "${name}" er lagret`);
+});
+
+document.getElementById('board-name-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('save-board-btn').click();
+});
+
+function loadBoard(id) {
+  if (id === activeBoardId) return;   // don't wipe current draws for a no-op click
+  activeBoardId = id;
+  saveState();
+  remountView();
+  updateBoardNameDisplay();
+  renderToolPanel();
+}
+
+function deleteBoard(id) {
+  if (boards.length <= 1) { showToast('Du må ha minst ett sett'); return; }
+  const deleted = boards.find(b => b.id === id);
+  boards = boards.filter(b => b.id !== id);
+  if (activeBoardId === id) activeBoardId = boards[0].id;
+  saveState();
+  remountView();
+  updateBoardNameDisplay();
+  renderToolPanel();
+  showToast(`Settet "${deleted?.name || ''}" er slettet`);
+}
+
+function updateBoardNameDisplay() {
+  document.getElementById('board-name-display').textContent = activeBoard().name;
+}
+
+// ─── TOAST ────────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 2400);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+applyPalette(currentPalette);
+updateBoardNameDisplay();
+initDraws();
+mountView();
+openChooser();   // the chooser IS the start page; first-timers can't dismiss it
+</script>
+</body>
+</html>
